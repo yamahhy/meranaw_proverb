@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meranaw Proverbs Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Top right menu button -->
+      <button class="menu-button">
+        <svg
+          class="icon"
+          width="24"
+          height="24"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 6h16M4 12h16m-7 6h7"
+          ></path>
+        </svg>
+      </button>
+
+      <!-- Main Dashboard -->
+      <div id="main-dashboard">
+        <!-- Title -->
+        <h1 class="app-title">PANANAROON</h1>
+
+        <!-- Search Bar -->
+        <div class="search-container">
+          <div class="search-bar">
+            <input
+              type="text"
+              id="search-input"
+              placeholder="Search here..."
+              class="search-input"
+            />
+            <button class="search-button">
+              <svg
+                class="icon"
+                width="20"
+                height="20"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                ></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Theme Categories Grid -->
+        <div id="themes-grid" class="themes-grid">
+          <!-- Themes will be populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Theme View -->
+      <div id="theme-view" class="theme-view">
+        <button id="back-button" class="back-button">
+          &larr; Back to Categories
+        </button>
+
+        <h2 id="theme-header" class="theme-header"></h2>
+
+        <div id="proverbs-list" class="proverbs-list">
+          <!-- Proverbs will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Proverb Modal -->
+    <div id="proverb-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-body">
+          <div class="modal-header">
+            <h3 id="modal-title" class="modal-title"></h3>
+            <button id="close-modal" class="close-button">
+              <svg
+                class="icon"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="#942031"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                ></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="modal-content-body">
+            <div class="content-section">
+              <h4>ORIGINAL PROVERB</h4>
+              <p id="modal-content" class="original-proverb"></p>
+            </div>
+
+            <div class="content-section">
+              <h4>TRANSLATION</h4>
+              <p id="modal-translation"></p>
+            </div>
+
+            <div class="content-section">
+              <h4>EXPLANATION</h4>
+              <p id="modal-explanation"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+      <h2>About</h2>
+      <div class="sidebar-section">
+        <h3>Ethical Principles</h3>
+        <p>Content about ethical principles...</p>
+      </div>
+      <div class="sidebar-section">
+        <h3>Cultural Context</h3>
+        <p>Information about cultural context...</p>
+      </div>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+      <!-- Existing about content -->
+      <div id="admin-section" class="sidebar-section" style="display: none">
+        <h2>Admin Tools</h2>
+        <button onclick="showAddCategoryForm()">Add New Category</button>
+        <button onclick="showAddProverbForm()">Add New Proverb</button>
+        <button id="logout-button">Logout</button>
+      </div>
+    </div>
+
+    <!-- Admin Tools -->
+    <div class="admin-panel">
+      <button id="admin-login" class="admin-login">Admin Login</button>
+      <div id="admin-form" class="admin-form">
+        <input
+          type="password"
+          id="admin-password"
+          placeholder="Enter password"
+        />
+        <button id="admin-access">Access</button>
+      </div>
+    </div>
+
+    <!-- Add Proverb Modal -->
+    <div id="add-proverb-modal" class="modal-overlay">
+      <!-- Similar structure to proverb modal with form fields -->
+    </div>
+    <div id="category-modal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-body">
+          <!-- Category form similar to proverb modal -->
+        </div>
+      </div>
+    </div>
+    <script src="data.js"></script>
+    <script src="scripts.js"></script>
+  </body>
+</html>
