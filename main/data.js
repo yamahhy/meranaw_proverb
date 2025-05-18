@@ -92,7 +92,7 @@ export const themes: Record<ThemeKey, Theme> = {
   },
   moral_teaching: {
     id: "moral_teaching",
-    title: "Moral Teaching & Self-Reflection",
+    title: "Moral Teaching & Self -Reflection",
     class: "moral-teaching-box",
     color: "#f59e0b",
     bgColor: "rgba(245, 158, 11, 0.05)",
@@ -100,42 +100,3 @@ export const themes: Record<ThemeKey, Theme> = {
     description: "Encourages virtue, ethical behavior, and personal insight.",
   },
 };
-
-// Sample proverbs (replace with your actual data or Firebase source)
-export const sampleProverbs: Proverb[] = [
-  {
-    id: "MT001",
-    meranaw_pananaroon:
-      "Aya ipkhababaya o taw na ipkhababaya niyan ko pagari niyan",
-    literal_meaning:
-      "What one wishes for himself, he should wish for his brother.",
-    english_translation:
-      "What one wishes for himself, he should wish for his brother.",
-    theme: "moral_teaching",
-    source: "Cultural elders",
-    status: "approved",
-    interpretation:
-      "This proverb encourages empathy and treating others as one would like to be treated. It is a moral foundation in Meranaw society.",
-  },
-  {
-    id: "CR001",
-    meranaw_pananaroon: "So bangsa a di phagosaya na matay",
-    literal_meaning: "A nation that does not unite will perish.",
-    english_translation: "A nation that does not unite will perish.",
-    theme: "conflict_resolution",
-    source: "Traditional saying",
-    status: "approved",
-  },
-  {
-    id: "LD001",
-    meranaw_pananaroon:
-      "So taw a makapipiya ko manga taw na phakadakel sa ginawa niyan",
-    literal_meaning:
-      "The person who does good to others increases his own worth.",
-    english_translation:
-      "The person who does good to others increases his own worth.",
-    theme: "leadership",
-    source: "Elder wisdom",
-    status: "approved",
-  },
-];
