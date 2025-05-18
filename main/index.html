@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meranaw Pananaroon - Preservation of Meranaw Proverbs</title>
+
+    <!-- External Resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css"
+    />
+    <!-- Firebase Core -->
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+    <!-- Firebase Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+    <!-- Your Firebase Service -->
+    <script src="firebase.js"></script>
+    <!-- Your Main Script -->
+    <script src="script.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#6f1926",
+              accent: "#e5c121",
+            },
+            borderRadius: {
+              button: "8px",
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Custom CSS -->
+    <style>
+      /* Theme boxes styling */
+      .theme-box {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        min-height: 90px;
+      }
+
+      .theme-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Custom checkbox styling */
+      .custom-checkbox {
+        position: relative;
+        padding-left: 35px;
+        cursor: pointer;
+      }
+
+      .custom-checkbox input {
+        position: absolute;
+        opacity: 0;
+      }
+
+      .checkmark {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 20px;
+        width: 20px;
+        background-color: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+      }
+
+      .custom-checkbox:hover input ~ .checkmark {
+        background-color: #f9fafb;
+      }
+
+      .custom-checkbox input:checked ~ .checkmark {
+        background-color: #6f1926;
+        border-color: #6f1926;
+      }
+
+      .checkmark:after {
+        content: "";
+        position: absolute;
+        display: none;
+      }
+
+      .custom-checkbox input:checked ~ .checkmark:after {
+        display: block;
+      }
+
+      .custom-checkbox .checkmark:after {
+        left: 7px;
+        top: 3px;
+        width: 6px;
+        height: 12px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+      .theme-box {
+        transition: all 0.3s ease;
+        border-width: 1px;
+      }
+      .theme-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+      }
+      .leadership-box {
+        border-color: rgba(111, 25, 38, 0.5);
+        color: rgb(111, 25, 38);
+      }
+      .leadership-box:hover {
+        background-color: rgba(111, 25, 38, 0.05);
+      }
+
+      .conflict-resolution-box {
+        border-color: rgba(229, 193, 33, 0.5);
+        color: #9b7f00;
+      }
+      .conflict-resolution-box:hover {
+        background-color: rgba(229, 193, 33, 0.05);
+      }
+
+      .argumentation-box {
+        border-color: rgba(148, 32, 49, 0.5);
+        color: rgb(148, 32, 49);
+      }
+      .argumentation-box:hover {
+        background-color: rgba(148, 32, 49, 0.05);
+      }
+
+      .death-sermon-box {
+        border-color: rgba(229, 193, 33, 0.5);
+      }
+      .death-sermon-box:hover {
+        background-color: rgba(229, 193, 33, 0.05);
+      }
+
+      .enthronement-genealogy-box {
+        border-color: rgba(111, 25, 38, 0.5);
+        color: rgb(111, 25, 38);
+      }
+      .enthronement-genealogy-box:hover {
+        background-color: rgba(111, 25, 38, 0.05);
+      }
+
+      .courtship-marriage-box {
+        border-color: rgba(229, 193, 33, 0.5);
+        color: #9b7f00;
+      }
+      .courtship-marriage-box:hover {
+        background-color: rgba(229, 193, 33, 0.05);
+      }
+
+      .moral-teaching-box {
+        border-color: rgba(148, 32, 49, 0.5);
+        color: rgb(148, 32, 49);
+      }
+      .moral-teaching-box:hover {
+        background-color: rgba(148, 32, 49, 0.05);
+      }
+
+      /* Animations */
+      .sidebar {
+        transition: transform 0.3s ease;
+      }
+
+      .notification {
+        animation: slideIn 0.3s forwards;
+      }
+
+      .modal {
+        animation: fadeIn 0.2s;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateY(100%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+    </style>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body class="bg-white min-h-screen font-sans">
+    <!-- Main Container -->
+    <div class="relative min-h-screen">
+      <!-- Header -->
+      <header
+        class="w-full py-6 px-8 flex items-center border-b border-gray-100"
+      >
+        <div class="w-1/4"><!-- Left spacer --></div>
+        <div class="flex-1 flex justify-center">
+          <h1
+            class="text-4xl font-bold bg-gradient-to-r from-[#6f1926] via-[#942031] to-[#e5c121] bg-clip-text text-transparent"
+          >
+            PANANAROON
+          </h1>
+        </div>
+        <div class="w-1/4 flex justify-end items-center gap-4">
+          <div class="relative">
+            <button
+              id="filterBtn"
+              class="flex items-center gap-2 text-gray-700 px-4 py-2 rounded-button border border-gray-200 hover:bg-gray-50 whitespace-nowrap"
+            >
+              <span class="w-5 h-5 flex items-center justify-center">
+                <i class="ri-filter-3-line"></i>
+              </span>
+              <span>Filter</span>
+            </button>
+            <div
+              id="filterDropdown"
+              class="hidden absolute right-0 mt-2 w-48 bg-white rounded shadow-lg z-10 border border-gray-100"
+            >
+              <div class="p-3">
+                <h3 class="font-medium text-gray-700 mb-2">Filter by Theme</h3>
+                <div class="space-y-2">
+                  <label
+                    class="custom-checkbox flex items-center gap-3 text-sm text-gray-600"
+                  >
+                    <input type="checkbox" value="courtship_marriage" checked />
+                    <span class="checkmark"></span>
+                    <span class="ml-6">Courtship/Marriage</span>
+                  </label>
+                  <label
+                    class="custom-checkbox flex items-center gap-3 text-sm text-gray-600"
+                  >
+                    <input type="checkbox" value="leadership" checked />
+                    <span class="checkmark"></span>
+                    <span class="ml-6">Leadership</span>
+                  </label>
+                  <label
+                    class="custom-checkbox flex items-center gap-3 text-sm text-gray-600"
+                  >
+                    <input
+                      type="checkbox"
+                      value="conflict_resolution"
+                      checked
+                    />
+                    <span class="checkmark"></span>
+                    <span class="ml-6">Conflict Resolution</span>
+                  </label>
+                  <label
+                    class="custom-checkbox flex items-center gap-3 text-sm text-gray-600"
+                  >
+                    <input type="checkbox" value="argumentation" checked />
+                    <span class="checkmark"></span>
+                    <span class="ml-6">Argumentation</span>
+                  </label>
+                  <label
+                    class="custom-checkbox flex items-center gap-3 text-sm text-gray-600"
+                  >
+                    <input type="checkbox" value="death_sermon" checked />
+                    <span class="checkmark"></span>
+                    <span class="ml-6">Death Sermon</span>
+                  </label>
+                  <label
+                    class="custom-checkbox flex items-center gap-3 text-sm text-gray-600"
+                  >
+                    <input
+                      type="checkbox"
+                      value="enthronement_genealogy"
+                      checked
+                    />
+                    <span class="checkmark"></span>
+                    <span class="ml-6">Enthronement/Genealogy</span>
+                  </label>
+                  <label
+                    class="custom-checkbox flex items-center gap-3 text-sm text-gray-600"
+                  >
+                    <input type="checkbox" value="moral_teaching" checked />
+                    <span class="checkmark"></span>
+                    <span class="ml-6">Moral Teaching</span>
+                  </label>
+                </div>
+                <button
+                  id="applyFiltersBtn"
+                  class="mt-3 w-full bg-primary text-white py-1.5 px-3 rounded-button text-sm font-medium hover:bg-opacity-90 whitespace-nowrap"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
+          <button
+            id="menuToggle"
+            class="w-10 h-10 flex items-center justify-center text-gray-700 hover:bg-gray-100 rounded-full"
+          >
+            <i class="ri-menu-line text-xl"></i>
+          </button>
+        </div>
+      </header>
+      <!-- Main Content -->
+      <main class="container mx-auto px-6 py-8">
+        <!-- Search Bar -->
+        <div class="max-w-xl mx-auto mb-16">
+          <div class="relative">
+            <input
+              id="searchInput"
+              type="text"
+              placeholder="Search Meranaw proverbs..."
+              class="w-full h-12 px-5 py-3 pl-12 text-base rounded-xl bg-white text-gray-700 border border-transparent relative"
+              style="
+                background: linear-gradient(white, white) padding-box,
+                  linear-gradient(90deg, #6f1926 0%, #942031 50%, #e5c121 100%)
+                    border-box;
+                border-width: 1px;
+              "
+            />
+            <div
+              class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 flex items-center justify-center"
+            >
+              <i class="ri-search-line text-lg"></i>
+            </div>
+            <button
+              id="searchBtn"
+              class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary text-white px-4 py-1.5 rounded-button text-sm font-medium hover:bg-opacity-90 whitespace-nowrap transition-all duration-200"
+            >
+              Search
+            </button>
+          </div>
+        </div>
+        <!-- Theme Categories -->
+        <div
+          id="dashboardView"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto"
+        >
+          <div
+            class="theme-box leadership-box rounded p-6 flex items-center justify-center cursor-pointer"
+            data-theme="leadership"
+          >
+            <h2 class="text-xl font-semibold">Leadership</h2>
+          </div>
+          <div
+            class="theme-box conflict-resolution-box rounded p-6 flex items-center justify-center cursor-pointer"
+            data-theme="conflict_resolution"
+          >
+            <h2 class="text-xl font-semibold">Conflict Resolution</h2>
+          </div>
+          <div
+            class="theme-box argumentation-box rounded p-6 flex items-center justify-center cursor-pointer"
+            data-theme="argumentation"
+          >
+            <h2 class="text-xl font-semibold">Argumentation</h2>
+          </div>
+          <div
+            class="theme-box death-sermon-box rounded p-6 flex items-center justify-center cursor-pointer"
+            data-theme="death_sermon"
+          >
+            <h2 class="text-xl font-semibold">Death Sermon</h2>
+          </div>
+          <div
+            class="theme-box enthronement-genealogy-box rounded p-6 flex items-center justify-center cursor-pointer"
+            data-theme="enthronement_genealogy"
+          >
+            <h2 class="text-xl font-semibold">Enthronement & Genealogy</h2>
+          </div>
+          <div
+            class="theme-box courtship-marriage-box rounded p-6 flex items-center justify-center cursor-pointer"
+            data-theme="courtship_marriage"
+          >
+            <h2 class="text-xl font-semibold">Courtship & Marriage</h2>
+          </div>
+          <div
+            class="theme-box moral-teaching-box rounded p-6 flex items-center justify-center cursor-pointer"
+            data-theme="moral_teaching"
+          >
+            <h2 class="text-xl font-semibold">
+              Moral Teaching & Self-Reflection
+            </h2>
+          </div>
+        </div>
+        <!-- Proverb List View (Initially Hidden) -->
+        <div id="proverbListView" class="hidden max-w-4xl mx-auto">
+          <div class="mb-6">
+            <button
+              id="backToDashboard"
+              class="flex items-center gap-2 text-gray-600 hover:text-primary"
+            >
+              <span class="w-5 h-5 flex items-center justify-center">
+                <i class="ri-arrow-left-line"></i>
+              </span>
+              <span>Back to Categories</span>
+            </button>
+          </div>
+          <h1
+            id="themeTitle"
+            class="text-2xl font-bold text-center mb-8 text-accent"
+          >
+            Community & Society
+          </h1>
+          <div class="space-y-4">
+            <!-- Proverbs will be loaded dynamically here -->
+          </div>
+        </div>
+      </main>
+      <!-- Sidebar -->
+      <div
+        id="sidebar"
+        class="fixed top-0 right-0 w-80 h-full bg-white shadow-lg transform translate-x-full sidebar z-20"
+      >
+        <div class="p-6">
+          <div class="flex justify-between items-center mb-8">
+            <h2 class="text-xl font-bold text-primary">Menu</h2>
+            <button
+              id="closeSidebar"
+              class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
+            >
+              <i class="ri-close-line text-xl"></i>
+            </button>
+          </div>
+          <button
+            id="contributeBtn"
+            class="w-full bg-primary text-white py-3 px-4 rounded-button mb-6 flex items-center justify-center gap-2 hover:bg-opacity-90 whitespace-nowrap"
+          >
+            <span class="w-5 h-5 flex items-center justify-center">
+              <i class="ri-add-line"></i>
+            </span>
+            <span>Contribute a Proverb</span>
+          </button>
+          <nav class="space-y-6">
+            <div>
+              <h3
+                class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3"
+              >
+                Navigation
+              </h3>
+              <ul class="space-y-2">
+                <li>
+                  <a
+                    href="#"
+                    class="flex items-center gap-3 text-gray-700 hover:text-primary py-2"
+                  >
+                    <span class="w-5 h-5 flex items-center justify-center">
+                      <i class="ri-home-line"></i>
+                    </span>
+                    <span>Home</span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    class="flex items-center gap-3 text-gray-700 hover:text-primary py-2"
+                  >
+                    <span class="w-5 h-5 flex items-center justify-center">
+                      <i class="ri-book-open-line"></i>
+                    </span>
+                    <span>Ethical Principles</span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    class="flex items-center gap-3 text-gray-700 hover:text-primary py-2"
+                  >
+                    <span class="w-5 h-5 flex items-center justify-center">
+                      <i class="ri-information-line"></i>
+                    </span>
+                    <span>About</span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    class="flex items-center gap-3 text-gray-700 hover:text-primary py-2"
+                  >
+                    <span class="w-5 h-5 flex items-center justify-center">
+                      <i class="ri-file-list-line"></i>
+                    </span>
+                    <span>Sources</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3
+                class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3"
+              >
+                Additional Resources
+              </h3>
+              <ul class="space-y-2">
+                <li>
+                  <a
+                    href="#"
+                    class="flex items-center gap-3 text-gray-700 hover:text-primary py-2"
+                  >
+                    <span class="w-5 h-5 flex items-center justify-center">
+                      <i class="ri-book-line"></i>
+                    </span>
+                    <span>Meranaw Culture</span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    class="flex items-center gap-3 text-gray-700 hover:text-primary py-2"
+                  >
+                    <span class="w-5 h-5 flex items-center justify-center">
+                      <i class="ri-translate-2"></i>
+                    </span>
+                    <span>Language Resources</span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    class="flex items-center gap-3 text-gray-700 hover:text-primary py-2"
+                  >
+                    <span class="w-5 h-5 flex items-center justify-center">
+                      <i class="ri-contacts-line"></i>
+                    </span>
+                    <span>Contact Us</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </nav>
+        </div>
+      </div>
+      <!-- Proverb Detail Modal -->
+      <div
+        id="proverbModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30 hidden modal"
+      >
+        <div
+          class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        >
+          <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-xl font-bold text-primary">Proverb Details</h2>
+              <button
+                id="closeProverbModal"
+                class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
+              >
+                <i class="ri-close-line text-xl"></i>
+              </button>
+            </div>
+            <div class="mb-2 text-xs text-gray-500">
+              ID: <span id="proverbId">CS001</span>
+            </div>
+            <div class="space-y-4 mb-6">
+              <div>
+                <h3 class="text-sm font-semibold text-gray-500">
+                  Meranaw Proverb:
+                </h3>
+                <p id="proverbText" class="text-lg font-medium text-primary">
+                  Aya ipkhababaya o taw na ipkhababaya niyan ko pagari niyan
+                </p>
+              </div>
+              <div>
+                <h3 class="text-sm font-semibold text-gray-500">
+                  Literal Meaning:
+                </h3>
+                <p id="literalMeaning" class="text-gray-700">
+                  What one wishes for himself, he should wish for his brother.
+                </p>
+              </div>
+              <div>
+                <h3 class="text-sm font-semibold text-gray-500">
+                  English Translation:
+                </h3>
+                <p id="englishTranslation" class="text-gray-700">
+                  What one wishes for himself, he should wish for his brother.
+                </p>
+              </div>
+            </div>
+            <div class="pt-4 border-t border-gray-100">
+              <button
+                id="interpretBtn"
+                class="bg-accent text-white py-2 px-4 rounded-button hover:bg-opacity-90 whitespace-nowrap"
+              >
+                <span class="flex items-center gap-2">
+                  <span class="w-5 h-5 flex items-center justify-center">
+                    <i class="ri-lightbulb-line"></i>
+                  </span>
+                  <span>Generate Interpretation</span>
+                </span>
+              </button>
+              <div
+                id="interpretationContainer"
+                class="mt-4 p-4 bg-gray-50 rounded hidden"
+              >
+                <h3 class="text-sm font-semibold text-gray-500 mb-2">
+                  Interpretation:
+                </h3>
+                <p id="interpretationText" class="text-gray-700">
+                  This proverb emphasizes the importance of empathy and treating
+                  others with the same consideration we desire for ourselves. It
+                  reflects the golden rule found in many cultures and religions,
+                  encouraging people to extend their good wishes and actions to
+                  others, especially those close to them. In Meranaw society,
+                  this proverb reinforces the value of community solidarity and
+                  familial bonds.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Contribute Modal -->
+      <div
+        id="contributeModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30 hidden modal"
+      >
+        <div
+          class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        >
+          <div class="p-6">
+            <div class="flex justify-between items-center mb-6">
+              <h2 class="text-xl font-bold text-primary">
+                Contribute a Proverb
+              </h2>
+              <button
+                id="closeContributeModal"
+                class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
+              >
+                <i class="ri-close-line text-xl"></i>
+              </button>
+            </div>
+            <form id="contributeForm" class="space-y-4">
+              <div>
+                <label
+                  for="proverb"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  >Meranaw Proverb:</label
+                >
+                <input
+                  type="text"
+                  id="proverb"
+                  name="proverb"
+                  class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder="Enter the original Meranaw proverb"
+                  required
+                />
+              </div>
+              <div>
+                <label
+                  for="literal_meaning"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  >Literal Meaning:</label
+                >
+                <textarea
+                  id="literal_meaning"
+                  name="literal_meaning"
+                  rows="3"
+                  class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder="Enter the literal meaning of the proverb"
+                  required
+                ></textarea>
+              </div>
+              <div>
+                <label
+                  for="english_translation"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  >English Translation:</label
+                >
+                <textarea
+                  id="english_translation"
+                  name="english_translation"
+                  rows="3"
+                  class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder="Enter the English translation of the proverb"
+                  required
+                ></textarea>
+              </div>
+              <div>
+                <label
+                  for="theme"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  >Theme:</label
+                >
+                <div class="relative">
+                  <select
+                    id="theme"
+                    name="theme"
+                    class="w-full px-4 py-2 border border-gray-300 rounded appearance-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent pr-8"
+                    required
+                  >
+                    <option value="" disabled selected>Select a theme</option>
+                    <option value="courtship_marriage">
+                      Courtship/Marriage
+                    </option>
+                    <option value="leadership">Leadership</option>
+                    <option value="conflict_resolution">
+                      Conflict Resolution
+                    </option>
+                    <option value="argumentation">Argumentation</option>
+                    <option value="death_sermon">Death Sermon</option>
+                    <option value="enthronement_genealogy">
+                      Enthronement/Genealogy
+                    </option>
+                    <option value="moral_teaching">
+                      Moral Teaching and Self-Reflection
+                    </option>
+                  </select>
+                  <div
+                    class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none w-5 h-5 flex items-center justify-center"
+                  >
+                    <i class="ri-arrow-down-s-line text-gray-400"></i>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label
+                  for="source"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                  >Source:</label
+                >
+                <input
+                  type="text"
+                  id="source"
+                  name="source"
+                  class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder="Enter the source of the proverb (e.g., book, elder, personal knowledge)"
+                  required
+                />
+              </div>
+              <div class="pt-4">
+                <button
+                  type="submit"
+                  class="w-full bg-primary text-white py-3 px-4 rounded-button hover:bg-opacity-90 whitespace-nowrap"
+                >
+                  Submit Contribution
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <!-- Notification -->
+      <div
+        id="notification"
+        class="hidden fixed bottom-0 left-0 m-6 p-4 bg-white rounded shadow-lg border-l-4 border-green-500 notification z-40"
+      >
+        <div class="flex items-start gap-3">
+          <div class="w-6 h-6 flex items-center justify-center text-green-500">
+            <i class="ri-check-line"></i>
+          </div>
+          <div>
+            <h3 class="font-medium text-green-800">
+              Thank you for your contribution!
+            </h3>
+            <p class="text-sm text-green-700">
+              The cultural experts will review and validate your submission.
+              Your effort helps preserve Meranaw cultural heritage.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- <script type="module">
+      // Import the firebase.js module
+      import firebaseService from "./firebase.js";
+
+      // Add event listener for when DOM content is loaded
+      document.addEventListener("DOMContentLoaded", async () => {
+        try {
+          console.log("Loading proverbs from Firebase...");
+
+          // Fetch all proverbs from your database
+          const proverbs = await firebaseService.getAllProverbs();
+          console.log("Proverbs loaded:", proverbs);
+
+          // Load featured proverbs on page load
+          if (typeof loadFeaturedProverbs === "function") {
+            loadFeaturedProverbs();
+          }
+        } catch (error) {
+          console.error("Error initializing app:", error);
+        }
+      });
+    </script>  -->
+
+    <!-- Keep the main script import -->
+    <script src="./script.js"></script>
+  </body>
+</html>
