@@ -1,5 +1,6 @@
+const API_BASE_URL = "http://localhost:5000";
 document.addEventListener("DOMContentLoaded", function () {
-  setTimeout(initApp, 300);
+  window.addEventListener("load", initApp);
 });
 
 let allProverbs = [];
@@ -7,6 +8,7 @@ let filteredProverbs = [];
 let activeFilters = new Set();
 
 async function initApp() {
+  setupEventListeners();
   if (!window.firebaseService || !window.firebaseService.getProverbs) {
     console.log("Waiting for Firebase...");
     setTimeout(initApp, 500);
@@ -69,6 +71,92 @@ const themes = {
   },
 };
 
+async function performSearch() {
+  const searchInput = document.getElementById("searchInput");
+  if (!searchInput) {
+    console.error("Search input field not found!");
+    return;
+  }
+  const searchTerm = searchInput.value.trim();
+
+  if (searchTerm) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/combined_search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: searchTerm }),
+      });
+
+      if (!response.ok) {
+        console.error(`HTTP error! status: ${response.status}`);
+        displaySearchError();
+        return;
+      }
+
+      const data = await response.json(); // Data is now a list of dictionaries
+      console.log("Search results:", data);
+      displaySearchResults(data, searchTerm); //  Pass data to display function
+    } catch (error) {
+      console.error("Fetch error:", error);
+      displaySearchError();
+    }
+  } else {
+    console.log("Search term is empty.");
+    loadInitialProverbs();
+  }
+}
+
+function displaySearchResults(results, searchTerm) {
+  const searchResultsDiv = document.getElementById("searchResults");
+  const searchResultsContainer = document.getElementById(
+    "searchResultsContainer"
+  );
+  const dashboardView = document.getElementById("dashboardView");
+  const proverbListView = document.getElementById("proverbListView");
+
+  if (!searchResultsDiv || !searchResultsContainer) {
+    console.error("Search results container not found in HTML.");
+    return;
+  }
+
+  searchResultsContainer.innerHTML = "";
+  searchResultsDiv.classList.remove("hidden");
+  dashboardView.classList.add("hidden");
+  proverbListView.classList.add("hidden");
+
+  if (results && results.length > 0) {
+    results.forEach((result) => {
+      // Iterate over the results from the API
+      const proverbElement = document.createElement("div");
+      proverbElement.classList.add(
+        "bg-white",
+        "rounded-lg",
+        "shadow-md",
+        "p-4"
+      );
+
+      proverbElement.innerHTML = `
+                <h3 class="text-lg font-semibold text-primary">${result.meranaw}</h3>
+                <p class="text-gray-700">${result.english}</p>
+                <p class="text-sm text-gray-500">Theme: ${result.theme}</p>
+            `;
+      searchResultsContainer.appendChild(proverbElement);
+    });
+  } else {
+    searchResultsContainer.innerHTML = "<p>No results found.</p>";
+  }
+  console.log("Displaying results:", results);
+}
+
+function displaySearchError() {
+  const searchResultsContainer = document.getElementById(
+    "searchResultsContainer"
+  );
+  if (searchResultsContainer) {
+    searchResultsContainer.innerHTML =
+      "<p>An error occurred during the search.</p>";
+  }
+}
 function setupEventListeners() {
   const dashboardView = document.getElementById("dashboardView");
   const proverbListView = document.getElementById("proverbListView");
@@ -76,12 +164,78 @@ function setupEventListeners() {
     "#proverbListView .space-y-4"
   );
   const themeTitle = document.getElementById("themeTitle");
+  const filterBtn = document.getElementById("filterBtn");
+  const menuToggle = document.getElementById("menuToggle");
+  const applyFiltersBtn = document.getElementById("applyFiltersBtn");
+  const backToDashboard = document.getElementById("backToDashboard"); // Assuming you'll add this button
+  const closeSidebar = document.getElementById("closeSidebar");
+  const searchBtn = document.getElementById("searchBtn");
+  if (searchBtn) {
+    console.log("Search button found:", searchBtn);
+    searchBtn.addEventListener("click", performSearch);
+    console.log("Click listener added to search button.");
+  } else {
+    console.error("Search button not found!");
+  }
+
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput) {
+    console.log("Search input found:", searchInput);
+    searchInput.addEventListener("keypress", function (event) {
+      if (event.key === "Enter") {
+        performSearch();
+      }
+    });
+    console.log("Keypress listener added to search input.");
+  } else {
+    console.error("Search input not found!");
+  }
+
+  // Handle modal close
+  const closeProverbModal = document.getElementById("closeProverbModal");
+  if (closeProverbModal) {
+    closeProverbModal.addEventListener("click", function () {
+      const proverbModal = document.getElementById("proverbModal");
+      const interpretationContainer = document.getElementById(
+        "interpretationContainer"
+      );
+      if (proverbModal) proverbModal.classList.add("hidden");
+      if (interpretationContainer)
+        interpretationContainer.classList.add("hidden");
+    });
+  }
+  if (filterBtn) {
+    filterBtn.addEventListener("click", toggleFilterDropdown);
+  } else {
+    console.error("Filter button not found!");
+  }
+
+  if (menuToggle) {
+    menuToggle.addEventListener("click", toggleSidebar);
+  } else {
+    console.error("Menu toggle button not found!");
+  }
+
+  if (applyFiltersBtn) {
+    applyFiltersBtn.addEventListener("click", applyFilters);
+  } else {
+    console.error("Apply filters button not found!");
+  }
+
+  // Add event listener for backToDashboard if it exists
+  const backDashboardBtn = document.getElementById("backToDashboard");
+  if (backDashboardBtn) {
+    backDashboardBtn.addEventListener("click", goBackToDashboard);
+  }
+  if (closeSidebar) {
+    closeSidebar.addEventListener("click", closeSidebar);
+  } else {
+    console.error("Close sidebar button not found!");
+  }
   document.getElementById("backToDashboard").addEventListener("click", () => {
     dashboardView.classList.remove("hidden");
     proverbListView.classList.add("hidden");
   });
-
-  const closeProverbModal = document.getElementById("closeProverbModal");
 
   document.getElementById("interpretBtn").addEventListener("click", () => {
     const proverbText = document.getElementById("proverbText").textContent;
@@ -169,6 +323,7 @@ function displayProverbs(proverbs, title) {
     proverbListContainer.appendChild(div);
   });
 }
+
 function showProverbDetails(proverbId) {
   const proverb = allProverbs.find((p) => p.id === proverbId);
   if (!proverb) return;
@@ -189,8 +344,39 @@ function showProverbDetails(proverbId) {
     modal.style.display = "flex";
   }
 }
-closeProverbModal.addEventListener("click", function () {
-  proverbModal.classList.add("hidden");
-  // Reset interpretation container
-  interpretationContainer.classList.add("hidden");
-});
+
+function toggleFilterDropdown() {
+  const filterDropdown = document.getElementById("filterDropdown");
+  if (filterDropdown) {
+    filterDropdown.classList.toggle("show");
+  }
+}
+
+function toggleSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  sidebar.classList.toggle("open");
+}
+
+function applyFilters() {
+  const checkboxes = document.querySelectorAll('input[name="theme"]:checked');
+  const selectedThemes = Array.from(checkboxes).map((cb) => cb.value);
+  console.log("Selected themes:", selectedThemes);
+  // Implement your filtering logic here, possibly calling a function in firebaseService.js
+  // and then updating the displayed proverbs.
+}
+
+function goBackToDashboard() {
+  console.log("Going back to dashboard (implement logic)");
+  // Implement logic to reset filters and load all proverbs or the initial set.
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById("sidebar");
+  sidebar.classList.remove("open");
+}
+
+function loadInitialProverbs() {
+  console.log("Loading initial proverbs (implement logic)");
+  // Implement logic to fetch and display the initial set of proverbs.
+  // This might involve calling firebaseService.getAllProverbs().
+}

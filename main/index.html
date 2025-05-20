@@ -332,6 +332,19 @@
             </button>
           </div>
         </div>
+
+        <div id="searchResults" class="hidden max-w-4xl mx-auto mt-8">
+          <h2
+            id="searchResultsTitle"
+            class="text-2xl font-bold text-center mb-4 text-primary"
+          >
+            Search Results
+          </h2>
+          <div
+            id="searchResultsContainer"
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          ></div>
+        </div>
         <!-- Theme Categories -->
         <div
           id="dashboardView"
@@ -621,7 +634,7 @@
                 Contribute a Proverb
               </h2>
               <button
-                id="closeContributionModal"
+                id="closeContribution"
                 class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
               >
                 <i class="ri-close-line text-xl"></i>
@@ -766,8 +779,8 @@
         const filterBtn = document.getElementById("filterBtn");
         const filterDropdown = document.getElementById("filterDropdown");
         const applyFiltersBtn = document.getElementById("applyFiltersBtn");
-        const searchInput = document.getElementById("searchInput");
-        const searchBtn = document.getElementById("searchBtn");
+        const searchResultsDiv = document.getElementById("searchResults");
+        const themeBoxes = document.querySelectorAll(".theme-box");
         const dashboardView = document.getElementById("dashboardView");
         const proverbListView = document.getElementById("proverbListView");
         const backToDashboard = document.getElementById("backToDashboard");
@@ -782,8 +795,7 @@
         const closeContributeModal = document.getElementById(
           "closeContributeModal"
         );
-        const submitContribution =
-          document.getElementById("submitContribution");
+        const submitContribution = document.getElementById("submit");
         const notificationArea = document.getElementById("notificationArea");
         const notificationMessage = document.getElementById(
           "notificationMessage"
@@ -797,6 +809,7 @@
             interpretationContainer.classList.add("hidden");
           });
         }
+
         let allProverbs = [];
         let filteredProverbs = [];
         let activeFilters = new Set([
@@ -808,7 +821,95 @@
           "enthronement_genealogy",
           "moral_teaching",
         ]);
+        async function performSearch() {
+          const searchInput = document.getElementById("searchInput");
+          if (!searchInput) {
+            console.error("Search input field not found!");
+            return;
+          }
+          const searchTerm = searchInput.value.trim();
 
+          if (searchTerm) {
+            try {
+              const response = await fetch(
+                `${API_BASE_URL}/api/combined_search`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ query: searchTerm }),
+                }
+              );
+
+              if (!response.ok) {
+                console.error(`HTTP error! status: ${response.status}`);
+                displaySearchError();
+                return;
+              }
+
+              const data = await response.json(); // Data is now a list of dictionaries
+              console.log("Search results:", data);
+              displaySearchResults(data, searchTerm); //  Pass data to display function
+            } catch (error) {
+              console.error("Fetch error:", error);
+              displaySearchError();
+            }
+          } else {
+            console.log("Search term is empty.");
+            loadInitialProverbs();
+          }
+        }
+
+        function displaySearchResults(results, searchTerm) {
+          const searchResultsDiv = document.getElementById("searchResults");
+          const searchResultsContainer = document.getElementById(
+            "searchResultsContainer"
+          );
+          const dashboardView = document.getElementById("dashboardView");
+          const proverbListView = document.getElementById("proverbListView");
+
+          if (!searchResultsDiv || !searchResultsContainer) {
+            console.error("Search results container not found in HTML.");
+            return;
+          }
+
+          searchResultsContainer.innerHTML = "";
+          searchResultsDiv.classList.remove("hidden");
+          dashboardView.classList.add("hidden");
+          proverbListView.classList.add("hidden");
+
+          if (results && results.length > 0) {
+            results.forEach((result) => {
+              // Iterate over the results from the API
+              const proverbElement = document.createElement("div");
+              proverbElement.classList.add(
+                "bg-white",
+                "rounded-lg",
+                "shadow-md",
+                "p-4"
+              );
+
+              proverbElement.innerHTML = `
+                      <h3 class="text-lg font-semibold text-primary">${result.meranaw}</h3>
+                      <p class="text-gray-700">${result.english}</p>
+                      <p class="text-sm text-gray-500">Theme: ${result.theme}</p>
+                  `;
+              searchResultsContainer.appendChild(proverbElement);
+            });
+          } else {
+            searchResultsContainer.innerHTML = "<p>No results found.</p>";
+          }
+          console.log("Displaying results:", results);
+        }
+
+        function displaySearchError() {
+          const searchResultsContainer = document.getElementById(
+            "searchResultsContainer"
+          );
+          if (searchResultsContainer) {
+            searchResultsContainer.innerHTML =
+              "<p>An error occurred during the search.</p>";
+          }
+        }
         // Function to show a notification
         function showNotification(message) {
           notificationMessage.textContent = message;
@@ -871,23 +972,108 @@
           }
         });
 
+        function displaySearch(results, searchTerm) {
+          searchResultsDiv.innerHTML = "";
+          showProverbList(`Search Results for "${searchTerm}"`);
+
+          if (results.length === 0) {
+            searchResultsDiv.innerHTML = "<p>No proverbs found.</p>";
+            return;
+          }
+
+          const gridContainer = document.createElement("div");
+          gridContainer.classList.add(
+            "grid",
+            "grid-cols-1",
+            "md:grid-cols-2",
+            "lg:grid-cols-3",
+            "gap-4"
+          );
+
+          results.forEach((proverb) => {
+            const proverbBox = document.createElement("div");
+            proverbBox.classList.add(
+              "bg-white",
+              "rounded-lg",
+              "shadow-md",
+              "p-6",
+              "cursor-pointer",
+              "hover:shadow-lg",
+              "transition-shadow"
+            );
+            proverbBox.innerHTML = `
+                          <h3 class="text-lg font-semibold text-primary mb-2">${
+                            proverb.meranaw
+                          }</h3>
+                          <p class="text-gray-700 mb-1"><span class="font-semibold">Translation:</span> ${
+                            proverb.english
+                          }</p>
+                          <p class="text-sm text-gray-500"><span class="font-semibold">Theme:</span> ${proverb.theme.replace(
+                            /_/g,
+                            " "
+                          )}</p>
+                      `;
+            proverbBox.addEventListener("click", () => {
+              const themeId = proverb.theme.toLowerCase().replace(/ /g, "-");
+              const targetThemeBox = document.querySelector(`.${themeId}-box`);
+
+              if (targetThemeBox) {
+                targetThemeBox.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
+              } else {
+                console.log(`Theme box for "${proverb.theme}" not found.`);
+              }
+            });
+            gridContainer.appendChild(proverbBox);
+          });
+
+          searchResultsDiv.appendChild(gridContainer);
+        }
         function performSearch() {
           const searchTerm = searchInput.value.toLowerCase().trim();
           if (searchTerm) {
-            const searchResults = allProverbs.filter(
-              (proverb) =>
-                proverb.meranaw.toLowerCase().includes(searchTerm) ||
-                proverb.english.toLowerCase().includes(searchTerm)
-            );
-            themeTitle.textContent = `Search Results for "${searchTerm}"`;
-            displayProverbs(searchResults, themeTitle.textContent);
-            dashboardView.classList.add("hidden");
-            proverbListView.classList.remove("hidden");
+            fetch("http://localhost:5000/api/combined_search", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ query: searchTerm }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (Array.isArray(data) && data.length > 0) {
+                  displaySearchResults(data, searchTerm); // Make sure this function exists
+                  dashboardView.classList.add("hidden");
+                  proverbsList.classList.remove("hidden");
+                } else {
+                  console.error("No search results:", data);
+                  searchResultsDiv.innerHTML =
+                    '<p class="text-red-500">No proverbs found for that search term.</p>';
+                }
+              })
+              .catch((error) => {
+                console.error("Fetch error:", error);
+                searchResultsDiv.innerHTML =
+                  '<p class="text-red-500">Error: Could not connect to server.</p>';
+              });
           } else {
             filterProverbs();
             displayDashboard();
           }
         }
+        themeBoxes.forEach((box) => {
+          box.addEventListener("click", function () {
+            const theme = this.querySelector("h2")
+              .textContent.toLowerCase()
+              .replace(/ /g, "_");
+            const filtered = allProverbs.filter(
+              (p) => p.theme.toLowerCase() === theme
+            );
+            displayProverbsList(filtered, this.querySelector("h2").textContent);
+          });
+        });
 
         // Function to filter proverbs based on active filters and optionally a theme
         function filterProverbs(theme = null) {
@@ -914,17 +1100,17 @@
                 "p-6"
               );
               proverbDiv.innerHTML = `
-                            <h3 class="text-lg font-semibold text-primary mb-2">${
-                              proverb.meranaw
-                            }</h3>
-                            <p class="text-gray-700 mb-1"><strong>Translation:</strong> ${
-                              proverb.english
-                            }</p>
-                            <p class="text-sm text-gray-500"><strong>Theme:</strong> ${proverb.theme.replace(
-                              /_/g,
-                              " "
-                            )}</p>
-                        `;
+                                  <h3 class="text-lg font-semibold text-primary mb-2">${
+                                    proverb.meranaw
+                                  }</h3>
+                                  <p class="text-gray-700 mb-1"><strong>Translation:</strong> ${
+                                    proverb.english
+                                  }</p>
+                                  <p class="text-sm text-gray-500"><strong>Theme:</strong> ${proverb.theme.replace(
+                                    /_/g,
+                                    " "
+                                  )}</p>
+                              `;
               proverbListContainer.appendChild(proverbDiv);
             });
           }
@@ -949,51 +1135,52 @@
             contributionForm.reset();
           });
         }
+        if (contributionForm) {
+          contributionForm.addEventListener("submit", function (event) {
+            event.preventDefault();
+                  const proverbText = document
+                    .getElementById("proverbText")
+                    .value.trim();
+                  const proverbTranslation = document
+                    .getElementById("proverbTranslation")
+                    .value.trim();
+                  const proverbTheme = document.getElementById("proverbTheme").value;
 
-        contributionForm.addEventListener("submit", function (event) {
-          event.preventDefault();
-          const proverbText = document
-            .getElementById("proverbText")
-            .value.trim();
-          const proverbTranslation = document
-            .getElementById("proverbTranslation")
-            .value.trim();
-          const proverbTheme = document.getElementById("proverbTheme").value;
+                  if (proverbText && proverbTranslation && proverbTheme) {
+                    window.firebaseService
+                      .addProverb({
+                        meranaw: proverbText,
+                        english: proverbTranslation,
+                        theme: proverbTheme,
+                      })
+                      .then(() => {
+                        showNotification("Proverb submitted for review!");
+                        contributionModal.classList.add("hidden");
+                        contributionForm.reset();
+                        // Optionally refresh the proverb list after submission
+                        loadInitialProverbs();
+                      })
+                      .catch((error) => {
+                        console.error("Error adding proverb:", error);
+                        showNotification("Error submitting proverb. Please try again.");
+                      });
+                  } else {
+                    showNotification("Please fill in all the fields.");
+                  }
+                  const notification = document.getElementById("notification");
+                  notification.classList.remove("hidden");
 
-          if (proverbText && proverbTranslation && proverbTheme) {
-            window.firebaseService
-              .addProverb({
-                meranaw: proverbText,
-                english: proverbTranslation,
-                theme: proverbTheme,
-              })
-              .then(() => {
-                showNotification("Proverb submitted for review!");
-                contributionModal.classList.add("hidden");
-                contributionForm.reset();
-                // Optionally refresh the proverb list after submission
-                loadInitialProverbs();
-              })
-              .catch((error) => {
-                console.error("Error adding proverb:", error);
-                showNotification("Error submitting proverb. Please try again.");
-              });
-          } else {
-            showNotification("Please fill in all the fields.");
-          }
-          const notification = document.getElementById("notification");
-          notification.classList.remove("hidden");
+                  // Auto-hide after 5 seconds
+                  setTimeout(() => {
+                    notification.classList.add("hidden");
+                  }, 5000);
+                });
 
-          // Auto-hide after 5 seconds
-          setTimeout(() => {
-            notification.classList.add("hidden");
-          }, 5000);
-        });
-
-        closeNotification.addEventListener("click", () => {
-          notificationArea.classList.add("translate-y-full");
-        });
-
+        if (closeNotification && notificationArea) {
+          closeNotification.addEventListener("click", () => {
+            notificationArea.classList.add("translate-y-full");
+          });
+        }
         // Initial data loading
         function loadInitialProverbs() {
           if (
@@ -1022,8 +1209,8 @@
       });
     </script>
     <!-- Keep the main script import -->
-    <script src="./firebaseInit.js"></script>
-    <script src="./firebaseService.js"></script>
-    <script src="./script.js"></script>
+    <script src="firebaseInit.js"></script>
+    <script src="firebaseService.js"></script>
+    <script src="script.js"></script>
   </body>
 </html>

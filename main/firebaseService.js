@@ -38,7 +38,7 @@ window.firebaseService = {
         death_sermon: "Death Sermon",
         courtship_marriage: "Courtship/Marriage",
         moral_teaching: "Moral Teaching and Self -Reflection",
-        enthronement_genealogy: "Enthronement/Genealogy",
+        enthronement_genealogy: "Enthronment/Genealogy",
       };
 
       const themeName = themeMapping[themeKey] || themeKey;
@@ -165,7 +165,7 @@ window.firebaseService = {
       };
 
       // Add to contributions collection instead of directly to proverbs
-      await db.collection("proverb_contributions").add(contribution);
+      await db.collection("contributions").add(contribution);
 
       console.log("Contribution added successfully");
       return true;
