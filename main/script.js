@@ -88,17 +88,27 @@ async function performSearch() {
       });
 
       if (!response.ok) {
+        // Handle HTTP errors (e.g., 500 Internal Server Error)
         console.error(`HTTP error! status: ${response.status}`);
-        displaySearchError();
+        displaySearchError("Server error. Please try again."); // Provide a user-friendly message
         return;
       }
 
-      const data = await response.json(); // Data is now a list of dictionaries
-      console.log("Search results:", data);
-      displaySearchResults(data, searchTerm); //  Pass data to display function
-    } catch (error) {
-      console.error("Fetch error:", error);
-      displaySearchError();
+      try {
+        const data = await response.json(); // Attempt to parse the JSON
+        console.log("Search results:", data);
+        displaySearchResults(data, searchTerm);
+      } catch (jsonError) {
+        // Handle errors in parsing JSON (e.g., invalid JSON response)
+        console.error("Error parsing JSON:", jsonError);
+        displaySearchError("Invalid data received from server.");
+      }
+    } catch (fetchError) {
+      // Handle fetch errors (e.g., network issues, but also other fetch problems)
+      console.error("Fetch error:", fetchError);
+      displaySearchError(
+        "Could not perform search. Please check your connection or try again."
+      );
     }
   } else {
     console.log("Search term is empty.");
@@ -106,57 +116,15 @@ async function performSearch() {
   }
 }
 
-function displaySearchResults(results, searchTerm) {
-  const searchResultsDiv = document.getElementById("searchResults");
-  const searchResultsContainer = document.getElementById(
-    "searchResultsContainer"
-  );
-  const dashboardView = document.getElementById("dashboardView");
-  const proverbListView = document.getElementById("proverbListView");
-
-  if (!searchResultsDiv || !searchResultsContainer) {
-    console.error("Search results container not found in HTML.");
-    return;
-  }
-
-  searchResultsContainer.innerHTML = "";
-  searchResultsDiv.classList.remove("hidden");
-  dashboardView.classList.add("hidden");
-  proverbListView.classList.add("hidden");
-
-  if (results && results.length > 0) {
-    results.forEach((result) => {
-      // Iterate over the results from the API
-      const proverbElement = document.createElement("div");
-      proverbElement.classList.add(
-        "bg-white",
-        "rounded-lg",
-        "shadow-md",
-        "p-4"
-      );
-
-      proverbElement.innerHTML = `
-                <h3 class="text-lg font-semibold text-primary">${result.meranaw}</h3>
-                <p class="text-gray-700">${result.english}</p>
-                <p class="text-sm text-gray-500">Theme: ${result.theme}</p>
-            `;
-      searchResultsContainer.appendChild(proverbElement);
-    });
-  } else {
-    searchResultsContainer.innerHTML = "<p>No results found.</p>";
-  }
-  console.log("Displaying results:", results);
-}
-
-function displaySearchError() {
+function displaySearchError(message) {
   const searchResultsContainer = document.getElementById(
     "searchResultsContainer"
   );
   if (searchResultsContainer) {
-    searchResultsContainer.innerHTML =
-      "<p>An error occurred during the search.</p>";
+    searchResultsContainer.innerHTML = `<p class="text-red-500">${message}</p>`;
   }
 }
+
 function setupEventListeners() {
   const dashboardView = document.getElementById("dashboardView");
   const proverbListView = document.getElementById("proverbListView");
