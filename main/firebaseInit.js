@@ -32,7 +32,10 @@ document.addEventListener("DOMContentLoaded", function () {
   function initializeFirebase() {
     if (firebaseAppInitialized && firestoreLoaded) {
       try {
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+          // Prevent re-initialization
+          firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.firestore();
 
         // Make Firebase and Firestore available globally
@@ -40,16 +43,8 @@ document.addEventListener("DOMContentLoaded", function () {
         window.firestore = db;
 
         console.log("Firebase initialized successfully");
-
-        // Load the firebaseService script after Firebase is initialized
-        loadScript("firebaseService.js", () => {
-          if (typeof initApp === "function") {
-            initApp(); // Start the app only once
-          }
-          console.log("firebaseService.js loaded");
-          // You might want to trigger an event here or call a function
-          // in script.js to indicate that Firebase is ready.
-        });
+        // No need to load firebaseService.js here, it's loaded in index.html
+        // And no need to call initApp() here, script.js will handle it.
       } catch (error) {
         console.error("Error initializing Firebase:", error);
       }
@@ -60,7 +55,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Load Firebase App SDK
   loadScript(
-    "https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js",
+    "https://www.gstatic.com/firebasejs/11.7.3/firebase-app-compat.js",
     () => {
       console.log("firebase-app-compat.js loaded");
       firebaseAppInitialized = true;
@@ -70,7 +65,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Load Firebase Firestore SDK
   loadScript(
-    "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js",
+    "https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore-compat.js",
     () => {
       console.log("firebase-firestore-compat.js loaded");
       firestoreLoaded = true;

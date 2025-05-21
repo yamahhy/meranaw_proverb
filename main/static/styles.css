@@ -181,3 +181,13 @@
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
+
+.filterDropdown {
+  /* Add this class to your dropdown in HTML */
+  display: none;
+  /* Add transition properties if desired */
+}
+
+.filterDropdown.show {
+  display: block;
+}

@@ -163,6 +163,11 @@
       /* Animations */
       .sidebar {
         transition: transform 0.3s ease;
+        transform: translateX(100%); /* Default closed state */
+      }
+
+      .sidebar.open {
+        transform: translateX(0); /* Open state */
       }
 
       .notification {
@@ -191,7 +196,11 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="./static/styles.css" />
+    <script src="https://www.gstatic.com/firebasejs/11.7.3/firebase-app-compat.js"></script>
+
+    <!-- Firebase Firestore (compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore-compat.js"></script>
   </head>
 
   <body class="bg-white min-h-screen font-sans">
@@ -305,7 +314,8 @@
       <!-- Main Content -->
       <main class="container mx-auto px-6 py-8">
         <!-- Search Bar -->
-        <div class="max-w-xl mx-auto mb-16">
+        <div class="max-w-xl mx-auto mb-16 relative">
+          <!-- Search Input Group -->
           <div class="relative">
             <input
               id="searchInput"
@@ -318,7 +328,9 @@
                     border-box;
                 border-width: 1px;
               "
+              autocomplete="off"
             />
+            <!-- Search Icon -->
             <div
               class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 flex items-center justify-center"
             >
@@ -331,8 +343,11 @@
               Search
             </button>
           </div>
+          <ul
+            id="suggestionsList"
+            class="absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto hidden"
+          ></ul>
         </div>
-
         <div id="searchResults" class="hidden max-w-4xl mx-auto mt-8">
           <h2
             id="searchResultsTitle"
@@ -760,9 +775,7 @@
             <i class="ri-check-line"></i>
           </div>
           <div>
-            <h3 class="font-medium text-green-800">
-              Thank you for your contribution!
-            </h3>
+            <h3 class="font-medium text-green-800"></h3>
             <p class="text-sm text-green-700">
               The cultural experts will review and validate your submission.
               Your effort helps preserve Meranaw cultural heritage.
@@ -789,8 +802,7 @@
           proverbListView.querySelector(".space-y-4");
         const contributeBtn = document.getElementById("contributeBtn");
         const contributionModal = document.getElementById("contributionModal");
-        const cancelContribution =
-          document.getElementById("cancelContribution");
+        const closeContribution = document.getElementById("closeContribution");
         const contributionForm = document.getElementById("contributionForm");
         const closeContributeModal = document.getElementById(
           "closeContributeModal"
@@ -831,14 +843,11 @@
 
           if (searchTerm) {
             try {
-              const response = await fetch(
-                `${API_BASE_URL}/api/combined_search`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ query: searchTerm }),
-                }
-              );
+              const response = await fetch("http://localhost:5000/search", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ query: searchTerm }),
+              });
 
               if (!response.ok) {
                 console.error(`HTTP error! status: ${response.status}`);
@@ -920,13 +929,22 @@
         }
 
         // Event listeners for sidebar
-        menuToggle.addEventListener("click", () => {
-          sidebar.classList.remove("translate-x-full");
+        menuToggle.addEventListener("click", function () {
+          sidebar.classList.toggle("translate-x-full");
+          sidebar.classList.toggle("translate-x-0");
         });
 
-        closeSidebar.addEventListener("click", () => {
-          sidebar.classList.add("translate-x-full");
-        });
+        if (closeSidebar) {
+          closeSidebar.addEventListener("click", function () {
+            sidebar.classList.add("translate-x-full");
+            sidebar.classList.remove("translate-x-0");
+          });
+        }
+
+        // closeSidebar.addEventListener("click", function () {
+        //   sidebar.classList.add("translate-x-full");
+        //   sidebar.classList.remove("translate-x-0");
+        // });
 
         // Event listeners for filter dropdown
         filterBtn.addEventListener("click", () => {
@@ -1034,7 +1052,7 @@
         function performSearch() {
           const searchTerm = searchInput.value.toLowerCase().trim();
           if (searchTerm) {
-            fetch("http://localhost:5000/api/combined_search", {
+            fetch("http://localhost:5000/api/search", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -1071,7 +1089,7 @@
             const filtered = allProverbs.filter(
               (p) => p.theme.toLowerCase() === theme
             );
-            displayProverbsList(filtered, this.querySelector("h2").textContent);
+            displayProverbs(filtered, this.querySelector("h2").textContent);
           });
         });
 
@@ -1115,6 +1133,34 @@
             });
           }
         }
+        function displayProverbs(proverbs, currentThemeTitle) {
+          const proverbListContainer = document.querySelector(
+            "#proverbListView .space-y-4"
+          );
+          const themeTitle = document.getElementById("themeTitle");
+
+          themeTitle.textContent = currentThemeTitle;
+          proverbListContainer.innerHTML = "";
+
+          if (proverbs.length === 0) {
+            proverbListContainer.innerHTML =
+              '<p class="text-gray-500 text-center">No proverbs found.</p>';
+            return;
+          }
+
+          proverbs.forEach((proverb) => {
+            const div = document.createElement("div");
+            div.className = "bg-white rounded-lg shadow-md p-6 cursor-pointer";
+            div.innerHTML = `
+                <h3 class="text-lg font-semibold text-primary mb-2">${proverb.meranaw}</h3>
+                <p class="text-gray-700 italic">${proverb.literal_meaning}</p>
+              `;
+            div.addEventListener("click", () => {
+              showProverbDetails(proverb.id);
+            });
+            proverbListContainer.appendChild(div);
+          });
+        }
 
         // Function to display the dashboard view
         function displayDashboard() {
@@ -1122,59 +1168,63 @@
           proverbListView.classList.add("hidden");
           themeTitle.textContent = "Meranaw Proverbs"; // Reset title
         }
-
         // Contribution modal functionality
         contributeBtn.addEventListener("click", function () {
           contributionModal.classList.remove("hidden");
           sidebar.classList.add("translate-x-full");
           sidebar.classList.remove("translate-x-0");
         });
-        if (cancelContribution) {
-          cancelContribution.addEventListener("click", () => {
+
+        if (closeContribution) {
+          closeContribution.addEventListener("click", () => {
             contributionModal.classList.add("hidden");
             contributionForm.reset();
           });
         }
+
         if (contributionForm) {
           contributionForm.addEventListener("submit", function (event) {
             event.preventDefault();
-                  const proverbText = document
-                    .getElementById("proverbText")
-                    .value.trim();
-                  const proverbTranslation = document
-                    .getElementById("proverbTranslation")
-                    .value.trim();
-                  const proverbTheme = document.getElementById("proverbTheme").value;
 
-                  if (proverbText && proverbTranslation && proverbTheme) {
-                    window.firebaseService
-                      .addProverb({
-                        meranaw: proverbText,
-                        english: proverbTranslation,
-                        theme: proverbTheme,
-                      })
-                      .then(() => {
-                        showNotification("Proverb submitted for review!");
-                        contributionModal.classList.add("hidden");
-                        contributionForm.reset();
-                        // Optionally refresh the proverb list after submission
-                        loadInitialProverbs();
-                      })
-                      .catch((error) => {
-                        console.error("Error adding proverb:", error);
-                        showNotification("Error submitting proverb. Please try again.");
-                      });
-                  } else {
-                    showNotification("Please fill in all the fields.");
-                  }
-                  const notification = document.getElementById("notification");
-                  notification.classList.remove("hidden");
+            const proverbText = document
+              .getElementById("proverbText")
+              .value.trim();
+            const proverbTranslation = document
+              .getElementById("proverbTranslation")
+              .value.trim();
+            const proverbTheme = document.getElementById("proverbTheme").value;
 
-                  // Auto-hide after 5 seconds
-                  setTimeout(() => {
-                    notification.classList.add("hidden");
-                  }, 5000);
+            if (proverbText && proverbTranslation && proverbTheme) {
+              window.firebaseService
+                .addProverb({
+                  meranaw: proverbText,
+                  english: proverbTranslation,
+                  theme: proverbTheme,
+                })
+                .then(() => {
+                  showNotification("Proverb submitted for review!");
+                  contributionModal.classList.add("hidden");
+                  contributionForm.reset();
+                  // Optionally refresh the proverb list after submission
+                  loadInitialProverbs();
+                })
+                .catch((error) => {
+                  console.error("Error adding proverb:", error);
+                  showNotification("Thank you for your contribution");
                 });
+            } else {
+              showNotification("Please fill in all the fields.");
+            }
+
+            const notification = document.getElementById("notification");
+            notification.classList.remove("hidden");
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+              notification.classList.add("hidden");
+            }, 5000);
+          });
+        }
 
         if (closeNotification && notificationArea) {
           closeNotification.addEventListener("click", () => {
@@ -1182,35 +1232,35 @@
           });
         }
         // Initial data loading
-        function loadInitialProverbs() {
-          if (
-            window.firebaseService &&
-            typeof window.firebaseService.getProverbs === "function"
-          ) {
-            window.firebaseService
-              .getProverbs()
-              .then((proverbs) => {
-                allProverbs = proverbs;
-                filterProverbs();
-                displayDashboard(); // Show dashboard with initial filtered proverbs
-              })
-              .catch((error) => {
-                console.error("Error fetching proverbs:", error);
-                showNotification("Failed to load proverbs.");
-              });
-          } else {
-            console.log("Firebase service not fully loaded yet, retrying...");
-            setTimeout(loadInitialProverbs, 500); // Retry after a delay
-          }
-        }
+        // function loadInitialProverbs() {
+        //   if (
+        //     window.firebaseService &&
+        //     typeof window.firebaseService.getProverbs === "function"
+        //   ) {
+        //     window.firebaseService
+        //       .getProverbs()
+        //       .then((proverbs) => {
+        //         allProverbs = proverbs;
+        //         filterProverbs();
+        //         displayDashboard(); // Show dashboard with initial filtered proverbs
+        //       })
+        //       .catch((error) => {
+        //         console.error("Error fetching proverbs:", error);
+        //         showNotification("Failed to load proverbs.");
+        //       });
+        //   } else {
+        //     console.log("Firebase service not fully loaded yet, retrying...");
+        //     setTimeout(loadInitialProverbs, 500); // Retry after a delay
+        //   }
+        // }
 
-        // Initial load
-        loadInitialProverbs();
+        //   // Initial load
+        //   loadInitialProverbs();
       });
     </script>
     <!-- Keep the main script import -->
     <script src="firebaseInit.js"></script>
     <script src="firebaseService.js"></script>
-    <script src="script.js"></script>
+    <script src="./static/script.js"></script>
   </body>
 </html>
