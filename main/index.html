@@ -68,6 +68,42 @@
         border: 1px solid #e2e8f0;
         border-radius: 4px;
       }
+      .modal-box {
+        transform: scale(0.95);
+        animation: zoomIn 0.3s forwards;
+        position: fixed;
+        inset: 0; /* top: 0, right: 0, bottom: 0, left: 0 */
+        background-color: rgba(0, 0, 0, 0.5); /* semi-transparent black */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 30;
+        display: none; /* hidden by default */
+      }
+      .modal.show {
+        display: flex;
+      }
+
+      .modal-content {
+        background-color: white;
+        border-radius: 0.5rem; /* rounded corners */
+        max-width: 42rem; /* same as max-w-2xl */
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        padding: 1.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      }
+      @keyframes zoomIn {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
 
       .custom-checkbox:hover input ~ .checkmark {
         background-color: #f9fafb;
@@ -314,8 +350,7 @@
       <!-- Main Content -->
       <main class="container mx-auto px-6 py-8">
         <!-- Search Bar -->
-        <div class="max-w-xl mx-auto mb-16 relative">
-          <!-- Search Input Group -->
+        <div class="max-w-xl mx-auto mb-16">
           <div class="relative">
             <input
               id="searchInput"
@@ -328,37 +363,52 @@
                     border-box;
                 border-width: 1px;
               "
-              autocomplete="off"
             />
-            <!-- Search Icon -->
             <div
               class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 flex items-center justify-center"
             >
               <i class="ri-search-line text-lg"></i>
             </div>
             <button
-              id="searchBtn"
+              id="searchButton"
               class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary text-white px-4 py-1.5 rounded-button text-sm font-medium hover:bg-opacity-90 whitespace-nowrap transition-all duration-200"
             >
               Search
             </button>
           </div>
-          <ul
-            id="suggestionsList"
-            class="absolute z-20 w-full bg-white border border-gray-300 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto hidden"
-          ></ul>
         </div>
-        <div id="searchResults" class="hidden max-w-4xl mx-auto mt-8">
-          <h2
-            id="searchResultsTitle"
-            class="text-2xl font-bold text-center mb-4 text-primary"
-          >
+
+        <!-- Search Results View -->
+        <div id="searchResultsView" class="hidden max-w-4xl mx-auto">
+          <div class="mb-6">
+            <button
+              id="backFromSearch"
+              class="flex items-center gap-2 text-gray-600 hover:text-primary"
+            >
+              <span class="w-5 h-5 flex items-center justify-center">
+                <i class="ri-arrow-left-line"></i>
+              </span>
+              <span>Back to Categories</span>
+            </button>
+          </div>
+          <h1 class="text-2xl font-bold text-center mb-8 text-accent">
             Search Results
-          </h2>
-          <div
-            id="searchResultsContainer"
-            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-          ></div>
+          </h1>
+          <div id="searchResults" class="space-y-4"></div>
+          <div id="noResults" class="hidden text-center py-8">
+            <div class="w-16 h-16 mx-auto mb-4 text-gray-300">
+              <i class="ri-search-line text-5xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-700 mb-2">
+              No results found
+            </h3>
+            <p class="text-gray-500 mb-4">
+              Try different keywords or check your spelling
+            </p>
+            <button id="clearSearch" class="text-primary hover:text-opacity-80">
+              Clear search and start over
+            </button>
+          </div>
         </div>
         <!-- Theme Categories -->
         <div
@@ -560,11 +610,9 @@
       <!-- Proverb Detail Modal -->
       <div
         id="proverbModal"
-        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30 hidden modal"
+        class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center px-4 py-8 overflow-auto hidden"
       >
-        <div
-          class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-        >
+        <div class="bg-white rounded-lg w-full max-w-2xl mx-auto shadow-lg p-6">
           <div class="p-6">
             <div class="flex justify-between items-center mb-4">
               <h2 class="text-xl font-bold text-primary">Proverb Details</h2>
@@ -609,7 +657,10 @@
               >
                 <span class="flex items-center gap-2">
                   <span class="w-5 h-5 flex items-center justify-center">
-                    <i class="ri-lightbulb-line"></i>
+                    <i
+                      onclick="generateInterpretation()"
+                      class="ri-lightbulb-line"
+                    ></i>
                   </span>
                   <span>Generate Interpretation</span>
                 </span>
@@ -786,13 +837,21 @@
     </div>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
+        const searchInput = document.getElementById("searchInput");
+        const searchButton = document.getElementById("searchButton");
+        const searchResultsView = document.getElementById("searchResultsView");
+        const searchResults = document.getElementById("searchResults");
+        const noResults = document.getElementById("noResults");
+        const backFromSearch = document.getElementById("backFromSearch");
+        const clearSearch = document.getElementById("clearSearch");
+        const proverbModal = document.getElementById("proverbModal");
+        const proverbId = document.getElementById("proverbId");
         const menuToggle = document.getElementById("menuToggle");
         const sidebar = document.getElementById("sidebar");
         const closeSidebar = document.getElementById("closeSidebar");
         const filterBtn = document.getElementById("filterBtn");
         const filterDropdown = document.getElementById("filterDropdown");
         const applyFiltersBtn = document.getElementById("applyFiltersBtn");
-        const searchResultsDiv = document.getElementById("searchResults");
         const themeBoxes = document.querySelectorAll(".theme-box");
         const dashboardView = document.getElementById("dashboardView");
         const proverbListView = document.getElementById("proverbListView");
@@ -833,92 +892,14 @@
           "enthronement_genealogy",
           "moral_teaching",
         ]);
-        async function performSearch() {
-          const searchInput = document.getElementById("searchInput");
-          if (!searchInput) {
-            console.error("Search input field not found!");
-            return;
-          }
-          const searchTerm = searchInput.value.trim();
 
-          if (searchTerm) {
-            try {
-              const response = await fetch("http://localhost:5000/search", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query: searchTerm }),
-              });
-
-              if (!response.ok) {
-                console.error(`HTTP error! status: ${response.status}`);
-                displaySearchError();
-                return;
-              }
-
-              const data = await response.json(); // Data is now a list of dictionaries
-              console.log("Search results:", data);
-              displaySearchResults(data, searchTerm); //  Pass data to display function
-            } catch (error) {
-              console.error("Fetch error:", error);
-              displaySearchError();
-            }
-          } else {
-            console.log("Search term is empty.");
-            loadInitialProverbs();
-          }
-        }
-
-        function displaySearchResults(results, searchTerm) {
-          const searchResultsDiv = document.getElementById("searchResults");
-          const searchResultsContainer = document.getElementById(
-            "searchResultsContainer"
-          );
-          const dashboardView = document.getElementById("dashboardView");
-          const proverbListView = document.getElementById("proverbListView");
-
-          if (!searchResultsDiv || !searchResultsContainer) {
-            console.error("Search results container not found in HTML.");
-            return;
-          }
-
-          searchResultsContainer.innerHTML = "";
-          searchResultsDiv.classList.remove("hidden");
-          dashboardView.classList.add("hidden");
-          proverbListView.classList.add("hidden");
-
-          if (results && results.length > 0) {
-            results.forEach((result) => {
-              // Iterate over the results from the API
-              const proverbElement = document.createElement("div");
-              proverbElement.classList.add(
-                "bg-white",
-                "rounded-lg",
-                "shadow-md",
-                "p-4"
-              );
-
-              proverbElement.innerHTML = `
-                      <h3 class="text-lg font-semibold text-primary">${result.meranaw}</h3>
-                      <p class="text-gray-700">${result.english}</p>
-                      <p class="text-sm text-gray-500">Theme: ${result.theme}</p>
-                  `;
-              searchResultsContainer.appendChild(proverbElement);
-            });
-          } else {
-            searchResultsContainer.innerHTML = "<p>No results found.</p>";
-          }
-          console.log("Displaying results:", results);
-        }
-
-        function displaySearchError() {
-          const searchResultsContainer = document.getElementById(
-            "searchResultsContainer"
-          );
-          if (searchResultsContainer) {
-            searchResultsContainer.innerHTML =
-              "<p>An error occurred during the search.</p>";
-          }
-        }
+        // const highlightText = (text, query) => {
+        //   const regex = new RegExp(`(${query})`, "gi");
+        //   return text.replace(
+        //     regex,
+        //     '<mark class="bg-accent/20 rounded px-0.5">$1</mark>'
+        //   );
+        // };
         // Function to show a notification
         function showNotification(message) {
           notificationMessage.textContent = message;
@@ -982,14 +963,6 @@
           proverbListView.classList.add("hidden");
         });
 
-        // Event listeners for search
-        searchBtn.addEventListener("click", performSearch);
-        searchInput.addEventListener("keypress", function (event) {
-          if (event.key === "Enter") {
-            performSearch();
-          }
-        });
-
         function displaySearch(results, searchTerm) {
           searchResultsDiv.innerHTML = "";
           showProverbList(`Search Results for "${searchTerm}"`);
@@ -1020,17 +993,17 @@
               "transition-shadow"
             );
             proverbBox.innerHTML = `
-                          <h3 class="text-lg font-semibold text-primary mb-2">${
-                            proverb.meranaw
-                          }</h3>
-                          <p class="text-gray-700 mb-1"><span class="font-semibold">Translation:</span> ${
-                            proverb.english
-                          }</p>
-                          <p class="text-sm text-gray-500"><span class="font-semibold">Theme:</span> ${proverb.theme.replace(
-                            /_/g,
-                            " "
-                          )}</p>
-                      `;
+                                <h3 class="text-lg font-semibold text-primary mb-2">${
+                                  proverb.meranaw
+                                }</h3>
+                                <p class="text-gray-700 mb-1"><span class="font-semibold">Translation:</span> ${
+                                  proverb.english
+                                }</p>
+                                <p class="text-sm text-gray-500"><span class="font-semibold">Theme:</span> ${proverb.theme.replace(
+                                  /_/g,
+                                  " "
+                                )}</p>
+                            `;
             proverbBox.addEventListener("click", () => {
               const themeId = proverb.theme.toLowerCase().replace(/ /g, "-");
               const targetThemeBox = document.querySelector(`.${themeId}-box`);
@@ -1048,38 +1021,6 @@
           });
 
           searchResultsDiv.appendChild(gridContainer);
-        }
-        function performSearch() {
-          const searchTerm = searchInput.value.toLowerCase().trim();
-          if (searchTerm) {
-            fetch("http://localhost:5000/api/search", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({ query: searchTerm }),
-            })
-              .then((response) => response.json())
-              .then((data) => {
-                if (Array.isArray(data) && data.length > 0) {
-                  displaySearchResults(data, searchTerm); // Make sure this function exists
-                  dashboardView.classList.add("hidden");
-                  proverbsList.classList.remove("hidden");
-                } else {
-                  console.error("No search results:", data);
-                  searchResultsDiv.innerHTML =
-                    '<p class="text-red-500">No proverbs found for that search term.</p>';
-                }
-              })
-              .catch((error) => {
-                console.error("Fetch error:", error);
-                searchResultsDiv.innerHTML =
-                  '<p class="text-red-500">Error: Could not connect to server.</p>';
-              });
-          } else {
-            filterProverbs();
-            displayDashboard();
-          }
         }
         themeBoxes.forEach((box) => {
           box.addEventListener("click", function () {
@@ -1118,17 +1059,17 @@
                 "p-6"
               );
               proverbDiv.innerHTML = `
-                                  <h3 class="text-lg font-semibold text-primary mb-2">${
-                                    proverb.meranaw
-                                  }</h3>
-                                  <p class="text-gray-700 mb-1"><strong>Translation:</strong> ${
-                                    proverb.english
-                                  }</p>
-                                  <p class="text-sm text-gray-500"><strong>Theme:</strong> ${proverb.theme.replace(
-                                    /_/g,
-                                    " "
-                                  )}</p>
-                              `;
+                                        <h3 class="text-lg font-semibold text-primary mb-2">${
+                                          proverb.meranaw
+                                        }</h3>
+                                        <p class="text-gray-700 mb-1"><strong>Translation:</strong> ${
+                                          proverb.english
+                                        }</p>
+                                        <p class="text-sm text-gray-500"><strong>Theme:</strong> ${proverb.theme.replace(
+                                          /_/g,
+                                          " "
+                                        )}</p>
+                                    `;
               proverbListContainer.appendChild(proverbDiv);
             });
           }
@@ -1147,14 +1088,40 @@
               '<p class="text-gray-500 text-center">No proverbs found.</p>';
             return;
           }
+          function showProverbDetails(proverbId) {
+            console.log("Clicked proverb ID:", proverbId); // Add this for debugging
+            const proverb = allProverbs.find((p) => p.id === proverbId);
+            if (!proverb) {
+              console.warn("Proverb not found for ID:", proverbId);
+              return;
+            }
+
+            document.getElementById("proverbId").textContent = proverb.id;
+            document.getElementById("proverbText").textContent =
+              proverb.meranaw;
+            document.getElementById("literalMeaning").textContent =
+              proverb.literal_meaning;
+            document.getElementById("englishTranslation").textContent =
+              proverb.english_translation;
+
+            document
+              .getElementById("interpretationContainer")
+              .classList.add("hidden");
+            document.getElementById("interpretationText").textContent = "";
+
+            if (modal) {
+              modal.classList.remove("hidden");
+              modal.style.display = "block"; // Ensure it's visible
+            }
+          }
 
           proverbs.forEach((proverb) => {
             const div = document.createElement("div");
             div.className = "bg-white rounded-lg shadow-md p-6 cursor-pointer";
             div.innerHTML = `
-                <h3 class="text-lg font-semibold text-primary mb-2">${proverb.meranaw}</h3>
-                <p class="text-gray-700 italic">${proverb.literal_meaning}</p>
-              `;
+                      <h3 class="text-lg font-semibold text-primary mb-2">${proverb.meranaw}</h3>
+                      <p class="text-gray-700 italic">${proverb.literal_meaning}</p>
+                    `;
             div.addEventListener("click", () => {
               showProverbDetails(proverb.id);
             });
@@ -1231,36 +1198,126 @@
             notificationArea.classList.add("translate-y-full");
           });
         }
-        // Initial data loading
-        // function loadInitialProverbs() {
-        //   if (
-        //     window.firebaseService &&
-        //     typeof window.firebaseService.getProverbs === "function"
-        //   ) {
-        //     window.firebaseService
-        //       .getProverbs()
-        //       .then((proverbs) => {
-        //         allProverbs = proverbs;
-        //         filterProverbs();
-        //         displayDashboard(); // Show dashboard with initial filtered proverbs
-        //       })
-        //       .catch((error) => {
-        //         console.error("Error fetching proverbs:", error);
-        //         showNotification("Failed to load proverbs.");
-        //       });
-        //   } else {
-        //     console.log("Firebase service not fully loaded yet, retrying...");
-        //     setTimeout(loadInitialProverbs, 500); // Retry after a delay
-        //   }
-        // }
 
-        //   // Initial load
-        //   loadInitialProverbs();
+        const highlightText = (text, query) => {
+          const regex = new RegExp(`(${query})`, "gi");
+          return text.replace(
+            regex,
+            '<mark class="bg-accent/20 rounded px-0.5">$1</mark>'
+          );
+        };
+
+        const performSearch = async () => {
+          const query = searchInput.value.trim();
+          if (!query) return;
+
+          dashboardView.classList.add("hidden");
+          searchResultsView.classList.remove("hidden");
+
+          try {
+            const response = await fetch("http://localhost:3000/search", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ query }),
+            });
+
+            if (!response.ok) throw new Error("Search request failed.");
+
+            const data = await response.json();
+
+            if (data.length > 0) {
+              searchResults.innerHTML = data
+                .map(
+                  (proverb) => `
+                    <div class="proverb-item p-4 border border-gray-200 rounded cursor-pointer" data-id="${
+                      proverb.meranaw_proverb
+                    }">
+                      <div class="flex justify-between">
+                        <h3 class="text-lg font-medium text-primary">${highlightText(
+                          proverb.meranaw_proverb,
+                          query
+                        )}</h3>
+                        <span class="text-xs text-gray-500">${
+                          proverb.search_type
+                        }</span>
+                      </div>
+                      <p class="text-gray-600 italic">${highlightText(
+                        proverb.augmented_interpretation,
+                        query
+                      )}</p>
+                    </div>
+                  `
+                )
+                .join("");
+
+              // Attach modal logic
+              searchResults
+                .querySelectorAll(".proverb-item")
+                .forEach((item) => {
+                  item.addEventListener("click", function () {
+                    const id = this.getAttribute("data-id");
+                    proverbId.textContent = id;
+                    proverbModal.classList.remove("hidden");
+                  });
+                });
+              searchResults.classList.remove("hidden");
+              noResults.classList.add("hidden");
+            } else {
+              searchResults.classList.add("hidden");
+              noResults.classList.remove("hidden");
+            }
+          } catch (error) {
+            console.error("Error fetching search results:", error);
+            searchResults.innerHTML =
+              '<p class="text-red-500">Something went wrong. Please try again.</p>';
+          }
+        };
+
+        searchButton.addEventListener("click", performSearch);
+        searchInput.addEventListener("keypress", function (e) {
+          if (e.key === "Enter") performSearch();
+        });
+
+        backFromSearch.addEventListener("click", function () {
+          searchResultsView.classList.add("hidden");
+          dashboardView.classList.remove("hidden");
+          searchInput.value = "";
+        });
+
+        clearSearch.addEventListener("click", function () {
+          searchInput.value = "";
+          searchResultsView.classList.add("hidden");
+          dashboardView.classList.remove("hidden");
+        });
       });
+      // Initial data loading
+      // function loadInitialProverbs() {
+      //   if (
+      //     window.firebaseService &&
+      //     typeof window.firebaseService.getProverbs === "function"
+      //   ) {
+      //     window.firebaseService
+      //       .getProverbs()
+      //       .then((proverbs) => {
+      //         allProverbs = proverbs;
+      //         filterProverbs();
+      //         displayDashboard(); // Show dashboard with initial filtered proverbs
+      //       })
+      //       .catch((error) => {
+      //         console.error("Error fetching proverbs:", error);
+      //         showNotification("Failed to load proverbs.");
+      //       });
+      //   } else {
+      //     console.log("Firebase service not fully loaded yet, retrying...");
+      //     setTimeout(loadInitialProverbs, 500); // Retry after a delay
+      //   }
+      // }
+
+      //   // Initial load
     </script>
     <!-- Keep the main script import -->
     <script src="firebaseInit.js"></script>
     <script src="firebaseService.js"></script>
-    <script src="./static/script.js"></script>
+    <script src="./static/script.js" defer></script>
   </body>
 </html>

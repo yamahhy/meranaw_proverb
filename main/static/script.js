@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:5000"; // Can be removed if no longer used for anything else.
+const API_BASE_URL = "http://localhost:3000";
 
 document.addEventListener("DOMContentLoaded", function () {
   initApp(); // Call initApp directly on DOMContentLoaded
@@ -69,9 +69,6 @@ const closeContributionBtn = document.getElementById("closeContribution");
 const filterBtn = document.getElementById("filterBtn");
 const filterDropdown = document.getElementById("filterDropdown");
 const applyFiltersBtn = document.getElementById("applyFiltersBtn");
-const searchInput = document.getElementById("searchInput");
-const searchBtn = document.getElementById("searchBtn");
-const searchResultsDiv = document.getElementById("searchResults");
 const dashboardView = document.getElementById("dashboardView");
 const proverbListView = document.getElementById("proverbListView");
 const backToDashboardBtn = document.getElementById("backToDashboard");
@@ -81,6 +78,14 @@ const proverbListContainer = proverbListView
   : null;
 const contributeBtn = document.getElementById("contributeBtn");
 const interpretBtn = document.getElementById("interpretBtn");
+const searchInput = document.getElementById("searchInput");
+const searchButton = document.getElementById("searchButton");
+const searchResultsView = document.getElementById("searchResultsView");
+const searchResults = document.getElementById("searchResults");
+const noResults = document.getElementById("noResults");
+const backFromSearch = document.getElementById("backFromSearch");
+const clearSearch = document.getElementById("clearSearch");
+const proverbId = document.getElementById("proverbId");
 
 let allProverbs = [];
 let filteredProverbs = []; // This variable is not actively used in the current display logic but can be useful for future filtering features.
@@ -155,10 +160,31 @@ function setupEventListeners() {
       }
     });
   }
+  searchButton.addEventListener("click", performSearch);
+  searchInput.addEventListener("keypress", function (e) {
+    if (e.key === "Enter") performSearch();
+  });
+  backFromSearch.addEventListener("click", resetSearchView);
+  clearSearch.addEventListener("click", resetSearchView);
+
+  const btn = document.getElementById("interpretBtn");
+  btn.addEventListener("click", async () => {
+    const proverbData = {
+      meranaw: "...",
+      english_translation: "...",
+      literal_meaning: "...",
+    };
+    try {
+      const result = await generateInterpretation(proverbData);
+      console.log(result);
+      // update UI with result
+    } catch (e) {
+      console.error(e);
+    }
+  });
   if (contributionForm) {
     contributionForm.addEventListener("submit", handleContributionSubmit);
   }
-  if (searchBtn) searchBtn.addEventListener("click", performSearch);
   if (searchInput) {
     searchInput.addEventListener("keypress", function (event) {
       if (event.key === "Enter") {
@@ -248,6 +274,7 @@ function setupEventListeners() {
             const proverbs = await window.firebaseService.getProverbsByTheme(
               theme
             );
+            allProverbs = proverbs;
             displayProverbs(proverbs, themes[theme].title);
             dashboardView.classList.add("hidden");
             proverbListView.classList.remove("hidden");
@@ -261,137 +288,6 @@ function setupEventListeners() {
         }
       }
     });
-  }
-}
-
-async function performSearch() {
-  const query = searchInput.value.trim();
-  const searchTerm = query.toLowerCase();
-  if (!query) return;
-
-  try {
-    const response = await fetch(`/search?query=${encodeURIComponent(query)}`);
-    const results = await response.json();
-
-    if (!Array.isArray(results)) {
-      console.error("Invalid search response:", results);
-      return;
-    }
-
-    // Display results in the list view
-    dashboardView.classList.add("hidden");
-    proverbListView.classList.remove("hidden");
-    themeTitle.textContent = `Search Results for "${query}"`;
-
-    // Highlight matches in Meranaw, literal, and English fields
-    const highlightedResults = results.map((p) => {
-      return {
-        ...p,
-        meranaw: highlightMatch(p.meranaw, searchTerm),
-        literal_meaning: highlightMatch(p.literal_meaning, searchTerm),
-        english_translation: highlightMatch(p.english_translation, searchTerm),
-      };
-    });
-
-    renderSearchResults(highlightedResults);
-  } catch (error) {
-    console.error("Search failed:", error);
-    showNotification("Search error. Please try again.");
-  }
-}
-
-function highlightMatch(text, term) {
-  if (!text || !term) return text;
-  const regex = new RegExp(`(${term})`, "gi");
-  return text.replace(regex, "<mark>$1</mark>");
-}
-
-function renderSearchResults(results) {
-  const container = document.querySelector("#proverbListView .space-y-4");
-  container.innerHTML = "";
-
-  if (results.length === 0) {
-    container.innerHTML =
-      '<p class="text-gray-500 text-center">No proverbs found.</p>';
-    return;
-  }
-
-  results.forEach((proverb) => {
-    const div = document.createElement("div");
-    div.className = "bg-white rounded-lg shadow-md p-6 cursor-pointer";
-    div.innerHTML = `
-      <h3 class="text-lg font-semibold text-primary mb-2">${
-        proverb.meranaw
-      }</h3>
-      <p class="text-gray-700 mb-1"><strong>Literal:</strong> ${
-        proverb.literal_meaning
-      }</p>
-      <p class="text-gray-700 mb-1"><strong>English:</strong> ${
-        proverb.english_translation
-      }</p>
-      <p class="text-sm text-gray-500">Theme: ${
-        themes[proverb.theme]?.title || proverb.theme
-      }</p>
-    `;
-    div.addEventListener("click", () => {
-      jumpToTheme(proverb.theme);
-    });
-    container.appendChild(div);
-  });
-}
-
-function jumpToTheme(themeKey) {
-  // Simulate click on the theme box
-  const themeBox = dashboardView.querySelector(`[data-theme="${themeKey}"]`);
-  if (themeBox) {
-    themeBox.click();
-  } else {
-    console.warn("Theme box not found:", themeKey);
-  }
-}
-
-function displaySearchResults(results, searchTerm) {
-  const searchResultsContainer = document.getElementById(
-    "searchResultsContainer"
-  );
-  if (!searchResultsContainer) return;
-
-  searchResultsContainer.innerHTML = ""; // Clear previous results
-  if (searchResultsDiv) searchResultsDiv.classList.remove("hidden");
-  if (dashboardView) dashboardView.classList.add("hidden");
-  if (proverbListView) proverbListView.classList.add("hidden");
-
-  if (results && results.length > 0) {
-    results.forEach((result) => {
-      const proverbElement = document.createElement("div");
-      proverbElement.classList.add(
-        "bg-white",
-        "rounded-lg",
-        "shadow-md",
-        "p-4",
-        "cursor-pointer"
-      );
-      proverbElement.innerHTML = `
-        <h3 class="text-lg font-semibold text-primary mb-2">${
-          result.meranaw
-        }</h3>
-        <p class="text-gray-700 mb-1"><strong>Literal:</strong> ${
-          result.literal_meaning
-        }</p>
-        <p class="text-gray-700 mb-1"><strong>English:</strong> ${
-          result.english_translation
-        }</p>
-        <p class="text-sm text-gray-500">Theme: ${
-          themes[result.theme]?.title || result.theme
-        }</p>
-      `;
-      proverbElement.addEventListener("click", () =>
-        showProverbDetails(result)
-      );
-      searchResultsContainer.appendChild(proverbElement);
-    });
-  } else {
-    searchResultsContainer.innerHTML = `<p class="text-gray-500 text-center">No proverbs found for "${searchTerm}".</p>`;
   }
 }
 
@@ -426,21 +322,40 @@ function displayDashboard() {
   });
 }
 
-function displayProverbs(proverbs, containerId) {
-  const container = document.getElementById(containerId);
-  if (!container) {
-    console.error(`Container with ID "${containerId}" not found.`);
-    return;
-  }
-  container.innerHTML = ""; // Clear existing proverbs
-  if (proverbs.length === 0) {
-    container.innerHTML = `<p class="text-center text-gray-500">No proverbs found for the selected filters or search query.</p>`;
-  } else {
-    proverbs.forEach((proverb) => {
-      container.appendChild(createProverbCard(proverb));
-    });
-  }
-}
+// function displayProverbs(proverbs, containerId) {
+//   const container = document.getElementById(containerId);
+//   if (!container) {
+//     console.error(`Container with ID "${containerId}" not found.`);
+//     return;
+//   }
+//   container.innerHTML = ""; // Clear existing proverbs
+//   if (proverbs.length === 0) {
+//     container.innerHTML = `<p class="text-center text-gray-500">No proverbs found for the selected filters or search query.</p>`;
+//   } else {
+//     proverbs.forEach((proverb) => {
+//       container.appendChild(createProverbCard(proverb));
+//     });
+//   }
+//   proverbs.forEach((proverb) => {
+//     const proverbDiv = document.createElement("div");
+//     proverbDiv.classList.add(
+//       "bg-white",
+//       "rounded-lg",
+//       "shadow-md",
+//       "p-6",
+//       "cursor-pointer" // Add cursor-pointer for better UX
+//     );
+//     proverbDiv.innerHTML = `
+//     <h3 class="text-lg font-semibold text-primary mb-2">${proverb.meranaw}</h3>
+//     <p class="text-gray-700 italic">${proverb.literal_meaning}</p>
+//   `;
+//     // Add this line to make the proverb clickable:
+//     proverbDiv.addEventListener("click", () => {
+//       showProverbDetails(proverb.id);
+//     });
+//     proverbListContainer.appendChild(proverbDiv);
+//   });
+// }
 
 function displayProverbs(proverbs, title) {
   const proverbListContainer = document.querySelector(
@@ -495,7 +410,7 @@ function displayThemeProverbs(proverbs, title) {
       <p class="text-gray-700 italic">${proverb.literal_meaning}</p>
     `;
     div.addEventListener("click", () => {
-      showProverbDetails(proverb.id);
+      showProverbDetails(proverb.id); // Pass the full object, not just ID
     });
     proverbListContainer.appendChild(div);
   });
@@ -514,8 +429,16 @@ box.addEventListener("click", async () => {
 });
 
 function showProverbDetails(proverbId) {
+  console.log("Clicked proverb ID:", proverbId);
+  console.log("Current allProverbs array:", allProverbs);
+
   const proverb = allProverbs.find((p) => p.id === proverbId);
-  if (!proverb) return;
+  console.log("Matched proverb:", proverb);
+
+  if (!proverb) {
+    console.warn("Proverb not found for ID:", proverbId);
+    return;
+  }
 
   document.getElementById("proverbId").textContent = proverb.id;
   document.getElementById("proverbText").textContent = proverb.meranaw;
@@ -530,6 +453,7 @@ function showProverbDetails(proverbId) {
   const modal = document.getElementById("proverbModal");
   if (modal) {
     modal.classList.remove("hidden");
+    modal.style.display = "block"; // optional for visibility
   }
 }
 
@@ -551,8 +475,8 @@ async function handleContributionSubmit(event) {
   event.preventDefault();
   const formData = new FormData(contributionForm);
   const newProverb = {
-    meranaw: formData.get("meranaw_proverb"),
-    literal_translation: formData.get("literal_translation_meranaw"),
+    meranaw: formData.get("meranaw"),
+    literal_translation: formData.get("literal_translation"),
     english_translation: formData.get("english_translation"),
     theme: formData.get("theme"),
   };
@@ -591,70 +515,213 @@ function showNotification(message) {
   }
 }
 
-function generateInterpretation() {
-  const proverbText = document.getElementById("proverbText").textContent;
-  const literalMeaning = document.getElementById("literalMeaning").textContent;
-  const englishTranslation =
-    document.getElementById("englishTranslation").textContent;
+// async function generateInterpretation() {
+//   const proverbText = document.getElementById("proverbText").textContent.trim();
+//   const literalMeaning = document
+//     .getElementById("literalMeaning")
+//     .textContent.trim();
+//   const englishTranslation = document
+//     .getElementById("englishTranslation")
+//     .textContent.trim();
 
-  // Simulate API call or complex logic
-  const mockInterpretation = `
-      This proverb emphasizes the importance of empathy and treating
-      others with the same consideration we desire for ourselves. It
-      reflects the golden rule found in many cultures and religions,
-      encouraging people to extend their good wishes and actions to
-      others, especially those close to them. In Meranaw society,
-      this proverb reinforces the value of community solidarity and
-      familial bonds.
-    `;
+//   const interpretationOutput = document.getElementById("interpretationText");
+//   const container = document.getElementById("interpretationContainer");
 
-  const interpretationOutput = document.getElementById("interpretationText");
-  const container = document.getElementById("interpretationContainer");
+//   if (interpretationOutput && container) {
+//     interpretationOutput.textContent = "Generating interpretation...";
+//     container.classList.remove("hidden");
+
+//     try {
+//       const response = await fetch("/api/meranaw-interpreter", {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({
+//           data: [proverbText, englishTranslation, literalMeaning],
+//         }),
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`HTTP error! Status: ${response.status}`);
+//       }
+
+//       const result = await response.json();
+//       const interpretation =
+//         result.data?.[0] || "Failed to generate interpretation.";
+
+//       interpretationOutput.textContent = interpretation;
+//     } catch (error) {
+//       console.error("Error generating interpretation:", error);
+//       interpretationOutput.textContent = "An error occurred. Please try again.";
+//     }
+//   }
+// }
+
+// async function generateInterpretation(
+//   meranaw,
+//   english_translation,
+//   interpretation
+// ) {
+//   try {
+//     const response = await fetch(
+//       "http://127.0.0.1:8000/api/meranaw-interpreter",
+//       {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({
+//           data: [meranaw, english_translation, interpretation],
+//         }),
+//       }
+//     );
+//     if (!response.ok) {
+//       throw new Error(`HTTP error! status: ${response.status}`);
+//     }
+
+//     const result = await response.json();
+//     return result;
+//   } catch (error) {
+//     console.error("Error generating interpretation:", error);
+//     return null;
+//   }
+// }
+
+async function generateInterpretation() {
+  const proverbTextElement = document.getElementById("proverbText");
+  const literalMeaningElement = document.getElementById("literalMeaning"); //
+  const englishTranslationElement =
+    document.getElementById("englishTranslation");
+
+  const interpretationOutput = document.getElementById("interpretationText"); //
+  const container = document.getElementById("interpretationContainer"); //
+
+  // Add null checks for robustness (as advised previously)
+  if (
+    !proverbTextElement ||
+    !literalMeaningElement ||
+    !englishTranslationElement ||
+    !interpretationOutput ||
+    !container
+  ) {
+    console.error(
+      "One or more required elements for interpretation are missing in the DOM."
+    );
+    showNotification("Error: Necessary proverb details elements not found.");
+    return;
+  }
+
+  const proverbText = proverbTextElement.textContent.trim();
+  const literalMeaning = literalMeaningElement.textContent.trim(); // Use literalMeaning here
+  const englishTranslation = englishTranslationElement.textContent.trim();
 
   if (interpretationOutput && container) {
-    interpretationOutput.textContent = "Generating interpretation...";
-    container.classList.remove("hidden");
+    interpretationOutput.textContent = "Generating interpretation..."; //
+    container.classList.remove("hidden"); //
 
-    setTimeout(() => {
-      interpretationOutput.textContent = mockInterpretation;
-    }, 800); // Simulate a delay for interpretation generation
+    try {
+      const response = await fetch(
+        "http://localhost:3000/api/meranaw-interpreter", // Changed from 3000 to 8000 based on your main.py
+        {
+          method: "POST", //
+          headers: { "Content-Type": "application/json" }, //
+          body: JSON.stringify({
+            data: [proverbText, englishTranslation, literalMeaning],
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        //
+        throw new Error(`HTTP error! Status: ${response.status}`); //
+      }
+
+      const result = await response.json(); //
+      // Rename this to generatedInterpretation to avoid conflict
+      const generatedInterpretation =
+        result.data?.[0] || "Failed to generate interpretation."; //
+
+      interpretationOutput.textContent = generatedInterpretation; //
+    } catch (error) {
+      //
+      console.error("Error generating interpretation:", error); //
+      interpretationOutput.textContent = "An error occurred. Please try again."; //
+    }
   }
 }
 
 const suggestionsList = document.getElementById("suggestionsList");
 
-searchInput.addEventListener("input", async () => {
+function highlightText(text, query) {
+  const regex = new RegExp(`(${query})`, "gi");
+  return text.replace(
+    regex,
+    '<mark class="bg-accent/20 rounded px-0.5">$1</mark>'
+  );
+}
+
+async function performSearch() {
   const query = searchInput.value.trim();
-  if (!query) {
-    suggestionsList.classList.add("hidden");
-    return;
-  }
+  if (!query) return;
+
+  dashboardView.classList.add("hidden");
+  searchResultsView.classList.remove("hidden");
 
   try {
-    const res = await fetch(`/suggest?q=${encodeURIComponent(query)}`);
-    const suggestions = await res.json();
-
-    suggestionsList.innerHTML = "";
-    if (suggestions.length === 0) {
-      suggestionsList.classList.add("hidden");
-      return;
-    }
-
-    suggestions.forEach((sugg) => {
-      const li = document.createElement("li");
-      li.textContent = sugg;
-      li.className = "px-4 py-2 hover:bg-gray-100 cursor-pointer";
-      li.addEventListener("click", () => {
-        searchInput.value = sugg;
-        performSearch(); // Use selected suggestion
-        suggestionsList.classList.add("hidden");
-      });
-      suggestionsList.appendChild(li);
+    const response = await fetch("http://localhost:3000/api/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
     });
 
-    suggestionsList.classList.remove("hidden");
-  } catch (err) {
-    console.error("Suggestion error:", err);
-    suggestionsList.classList.add("hidden");
+    if (!response.ok) throw new Error("Search request failed.");
+
+    const data = await response.json();
+
+    if (data.length > 0) {
+      searchResults.innerHTML = data
+        .map(
+          (proverb) => `
+          <div class="proverb-item p-4 border border-gray-200 rounded cursor-pointer" data-id="${
+            proverb.meranaw_proverb
+          }">
+            <div class="flex justify-between">
+              <h3 class="text-lg font-medium text-primary">${highlightText(
+                proverb.meranaw_proverb,
+                query
+              )}</h3>
+              <span class="text-xs text-gray-500">${proverb.search_type}</span>
+            </div>
+            <p class="text-gray-600 italic">${highlightText(
+              proverb.augmented_interpretation,
+              query
+            )}</p>
+          </div>
+        `
+        )
+        .join("");
+
+      // Clickable result items for modal
+      searchResults.querySelectorAll(".proverb-item").forEach((item) => {
+        item.addEventListener("click", function () {
+          const id = this.getAttribute("data-id");
+          proverbId.textContent = id;
+          proverbModal.classList.remove("hidden");
+        });
+      });
+
+      searchResults.classList.remove("hidden");
+      noResults.classList.add("hidden");
+    } else {
+      searchResults.classList.add("hidden");
+      noResults.classList.remove("hidden");
+    }
+  } catch (error) {
+    console.error("Error fetching search results:", error);
+    searchResults.innerHTML =
+      '<p class="text-red-500">Something went wrong. Please try again.</p>';
   }
-});
+}
+
+function resetSearchView() {
+  searchInput.value = "";
+  searchResultsView.classList.add("hidden");
+  dashboardView.classList.remove("hidden");
+}

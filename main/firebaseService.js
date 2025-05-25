@@ -1,5 +1,5 @@
 window.firebaseService = {
-  getAllProverbs: async function () {
+  getProverbs: async function () {
     try {
       const db = window.firebase.firestore();
       const proverbsCollection = await db.collection("meranaw_proverb").get();
@@ -14,7 +14,8 @@ window.firebaseService = {
           id: doc.id,
           meranaw: data.meranaw_proverb || "", // Changed from 'text' to 'meranaw'
           literal_meaning: data.literal_translation_meranaw || "", // Changed from 'literalMeaning' to 'literal_meaning'
-          english_translation: data.english_translation || "", // Changed from 'translation' to 'english_translation'
+          english_translation: data.english_translation || "",
+          interpretation: data.interpretation || "", // Changed from 'translation' to 'english_translation'
           theme: data.theme || "general",
         };
       });
@@ -27,7 +28,7 @@ window.firebaseService = {
   // Add a real-time listener function
   listenForProverbChanges: function (callback) {
     const db = window.firebase.firestore();
-    return db.collection("proverbs").onSnapshot(
+    return db.collection("meranaw_proverbs").onSnapshot(
       (snapshot) => {
         const proverbs = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -82,7 +83,8 @@ window.firebaseService = {
           id: doc.id,
           meranaw: data.meranaw_proverb || "", // Changed from 'text' to 'meranaw'
           literal_meaning: data.literal_translation_meranaw || "", // Changed from 'literalMeaning' to 'literal_meaning'
-          english_translation: data.english_translation || "", // Changed from 'translation' to 'english_translation'
+          english_translation: data.english_translation || "",
+          interpretation: data.interpretation || "", // Changed from 'translation' to 'english_translation'
           theme: data.theme || "general",
         };
       });
@@ -95,7 +97,7 @@ window.firebaseService = {
   addContribution: async function (proverbData) {
     try {
       const db = window.firebase.firestore(); // Get Firestore instance
-      await db.collection("proverbs").add(proverbData); // Add data to 'proverbs' collection
+      await db.collection("contributions").add(proverbData); // Add data to 'proverbs' collection
       console.log("Document successfully written!");
       return true;
     } catch (error) {
