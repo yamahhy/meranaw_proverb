@@ -16,7 +16,12 @@ collection_name = "meranaw_proverbs"
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # or your frontend URL
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:8000"# Frontend dev server (adjust if you're using Nuxt/Vercel)
+        "https://meranaw-pananaroon.vercel.app/",
+        "https://meranaw-frontend.onrender.com", 
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
